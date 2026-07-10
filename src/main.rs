@@ -1,13 +1,14 @@
 mod ui;
 
+use anyhow::Result;
 use ratatui::DefaultTerminal;
 
-fn main() -> color_eyre::Result<()> {
+fn main() -> color_eyre::Result<(), anyhow::Error> {
     // color_eyre::install()?;
     ratatui::run(app)?;
     Ok(())
 }
 
-fn app(terminal: &mut DefaultTerminal) -> std::io::Result<()> {
+fn app(terminal: &mut DefaultTerminal) -> Result<()> {
     ui::app::App::default().run(terminal)
 }
