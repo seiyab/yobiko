@@ -1,5 +1,0 @@
-[tools]
-node = "25.6.1"
-
-[tasks."pre-commit"]
-run = []
