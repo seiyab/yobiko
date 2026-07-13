@@ -2,7 +2,10 @@
 	"extends": "@tsconfig/node24/tsconfig.json",
 	"compilerOptions": {
 		"jsx": "react-jsx",
-		"noEmit": true
+		"types": ["node"],
+		"rootDir": "src",
+		"outDir": "dist",
+		"noEmit": false
 	},
-	"include": ["src", "*.config.ts"]
+	"include": ["src"]
 }
