@@ -1,19 +1,16 @@
 {
 	"name": "yobiko",
 	"version": "0.0.0",
+	"license": "MIT",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/seiyab/yobiko.git"
 	},
+	"bin": "dist/cli.js",
 	"files": [
 		"dist"
 	],
-	"license": "MIT",
-	"bin": "dist/cli.js",
 	"type": "module",
-	"engines": {
-		"node": ">=20"
-	},
 	"imports": {
 		"#/*": "./src/*"
 	},
@@ -46,6 +43,9 @@
 		"prettier": "^3.6.2",
 		"typescript": "~6.0.2",
 		"vitest": "^3.2.7"
+	},
+	"engines": {
+		"node": ">=20"
 	},
 	"licence": "MIT"
 }
