@@ -2,7 +2,7 @@
 	"extends": "@tsconfig/node24/tsconfig.json",
 	"compilerOptions": {
 		"paths": {
-			"#/*": ["./src/*"]
+			"#app/*": ["./src/*"]
 		},
 		"jsx": "react-jsx",
 		"types": ["node"],

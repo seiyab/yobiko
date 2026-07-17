@@ -1,5 +1,5 @@
 import { PathLike } from "node:fs";
-import { Provider, Task } from "#/core/provider.js";
+import { Provider, Task } from "#app/core/provider.js";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 

@@ -28,7 +28,7 @@ export function setup(providers: Provider[]): Scanner {
 			});
 		}
 
-		const dir = await fs.opendir(path);
+		using dir = await fs.opendir(path);
 		let e: Dirent | null;
 		while ((e = await dir.read())) {
 			if (!e.isDirectory()) continue;

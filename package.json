@@ -12,7 +12,7 @@
 	],
 	"type": "module",
 	"imports": {
-		"#/*": "./src/*"
+		"#app/*": "./dist/*"
 	},
 	"scripts": {
 		"build": "rm -rf dist && tsc",
@@ -45,7 +45,7 @@
 		"vitest": "^3.2.7"
 	},
 	"engines": {
-		"node": ">=20"
+		"node": ">=24"
 	},
 	"licence": "MIT"
 }
