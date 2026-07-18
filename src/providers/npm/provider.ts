@@ -15,8 +15,8 @@ async function workspace(p: PathLike): Promise<Workspace | null> {
 		([script, value]): Task => ({
 			name: script,
 			cwd: p.toString(),
-			command: r(script),
 			content: String(value),
+			...r(script),
 		}),
 	);
 	return {
@@ -26,10 +26,14 @@ async function workspace(p: PathLike): Promise<Workspace | null> {
 	};
 }
 
-type Runner = (script: string) => string;
+type Runner = (script: string) => {
+	command: string;
+	args: string[];
+};
 async function runner(p: PathLike): Promise<Runner> {
 	const entries = new Set(await fs.readdir(p));
-	if (entries.has("pnpm-lock.yaml")) return (script) => `pnpm run ${script}`;
-	if (entries.has("yarn.lock")) return (script) => `yarn run ${script}`;
-	return (script) => `npm run ${script}`;
+	if (entries.has("pnpm-lock.yaml"))
+		return (script) => ({ command: "pnpm", args: ["run", script] });
+	if (entries.has("yarn.lock")) return (script) => ({ command: "yarn", args: ["run", script] });
+	return (script) => ({ command: "npm", args: ["run", script] });
 }

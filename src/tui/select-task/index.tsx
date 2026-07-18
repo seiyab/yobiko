@@ -4,6 +4,7 @@ import TextInput from "ink-text-input";
 import { Workspace } from "#app/core/provider.js";
 import { Pane } from "#app/tui/ui/pane.js";
 import { BoxAttributes } from "../ui/box-attributes.js";
+import { runner } from "#app/core/runner.js";
 
 type Props = {
 	workspaces: Workspace[];
@@ -27,6 +28,13 @@ export function SelectTask({ workspaces, ...rest }: Props) {
 		if (mode === "insert") {
 			if (key.escape) setMode("normal");
 			if (key.ctrl && input === "[") setMode("normal");
+			return;
+		}
+		if (key.return) {
+			const task = list.at(cursor);
+			if (task != null) {
+				runner.spawn(task);
+			}
 			return;
 		}
 		switch (input) {
@@ -59,10 +67,11 @@ export function SelectTask({ workspaces, ...rest }: Props) {
 				</Box>
 				<Box ref={ref} flexGrow={1} flexDirection="column" overflow="hidden">
 					{list.map((task, i) => (
-						<Box key={JSON.stringify([task.cwd, task.command])} flexDirection="row">
+						<Box key={JSON.stringify([task.cwd, task.command, task.args])} flexDirection="row">
 							<Text>{i === cursor ? "> " : "  "}</Text>
 							<Text>{`(${task.cwd}) `}</Text>
 							<Text>{task.command}</Text>
+							<Text> {task.args?.join(" ")}</Text>
 						</Box>
 					))}
 				</Box>

@@ -15,5 +15,6 @@ export type Task = {
 	name: string;
 	cwd: string;
 	command: string;
+	args?: string[];
 	content?: string;
 };
