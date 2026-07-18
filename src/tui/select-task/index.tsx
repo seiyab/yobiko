@@ -1,16 +1,17 @@
 import { Box, Text, useInput } from "ink";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import TextInput from "ink-text-input";
-import { Workspace } from "#app/core/provider.js";
+import { Task, Workspace } from "#app/core/provider.js";
 import { Pane } from "#app/tui/ui/pane.js";
 import { BoxAttributes } from "../ui/box-attributes.js";
 import { runner } from "#app/core/runner.js";
 
 type Props = {
 	workspaces: Workspace[];
+	onHoverTask: (task: Task | null) => void;
 } & BoxAttributes;
 
-export function SelectTask({ workspaces, ...rest }: Props) {
+export function SelectTask({ workspaces, onHoverTask, ...rest }: Props) {
 	const [query, setQuery] = useState("");
 	const list = workspaces.flatMap((w) => {
 		return w.tasks.filter(
@@ -19,7 +20,7 @@ export function SelectTask({ workspaces, ...rest }: Props) {
 	});
 	const [cursor, setCursor] = useState(0);
 	const [mode, setMode] = useState<"normal" | "insert">("normal");
-	if (list.length > 1 && cursor >= list.length) {
+	if (list.length > 0 && cursor >= list.length) {
 		setCursor(list.length - 1);
 	}
 	const ref = useRef(null);
@@ -43,15 +44,19 @@ export function SelectTask({ workspaces, ...rest }: Props) {
 				setMode("insert");
 				break;
 			case "j":
-				setCursor((prev) => Math.min(prev + 1, list.length - 1));
+				moveCursor((prev) => prev + 1);
 				break;
 			case "k":
-				setCursor((prev) => Math.max(prev - 1, 0));
+				moveCursor((prev) => prev - 1);
 				break;
 			default:
 			// nothing
 		}
 	});
+	const taskUnderCursor = list.at(cursor) ?? null;
+	useEffect(() => {
+		onHoverTask(taskUnderCursor);
+	}, [taskUnderCursor]);
 
 	return (
 		<Pane name="Select Task" flexDirection="column" {...rest}>
@@ -78,5 +83,14 @@ export function SelectTask({ workspaces, ...rest }: Props) {
 			</Box>
 		</Pane>
 	);
+
+	function moveCursor(action: (prev: number) => number): void {
+		setCursor((prev) => clamp(action(prev), { min: 0, max: list.length - 1 }));
+		onHoverTask(list[action(cursor)] ?? null);
+	}
 }
 SelectTask satisfies React.FC<Props>;
+
+function clamp(n: number, { min, max }: { min: number; max: number }): number {
+	return Math.max(min, Math.min(n, max));
+}

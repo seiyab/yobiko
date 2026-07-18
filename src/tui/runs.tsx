@@ -30,14 +30,14 @@ function Indicator({ status }: IndicatorProps) {
 	switch (status) {
 		case "running":
 			return (
-				<Text color="yellow">
+				<Text color="blue">
 					<Spinner type="dots" />
 				</Text>
 			);
 		case "succeeded":
 			return <Text color="green">o</Text>;
 		default:
-			return <Text color="red">x</Text>;
+			return <Text color="red">!</Text>;
 	}
 }
 Indicator satisfies React.FC<IndicatorProps>;
