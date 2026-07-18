@@ -8,9 +8,7 @@ export const npm: Provider = { name: "npm", workspace };
 async function workspace(p: PathLike): Promise<Workspace | null> {
 	const entries = await fs.readdir(p);
 	if (!entries.includes("package.json")) return null;
-	const pkg = JSON.parse(
-		await fs.readFile(path.join(p.toString(), "package.json"), "utf8"),
-	);
+	const pkg = JSON.parse(await fs.readFile(path.join(p.toString(), "package.json"), "utf8"));
 	const r = await runner(p);
 	const scripts = pkg.scripts;
 	const tasks = Object.entries(scripts).map(

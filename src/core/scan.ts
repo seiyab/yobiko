@@ -20,7 +20,7 @@ export function setup(providers: Provider[]): Scanner {
 				const w = await provider.workspace(path);
 				if (w == null) continue;
 				ws.push(w);
-			} catch (_) {
+			} catch {
 				// skip
 			}
 		}

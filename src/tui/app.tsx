@@ -2,7 +2,6 @@ import React from "react";
 import { useApp, Box, Text, useInput } from "ink";
 import { useQuery } from "@tanstack/react-query";
 import { ecq } from "@seiyab/ecq";
-import { promises as promisesFs } from "node:fs";
 import { setup } from "#app/core/scan.js";
 import { npm } from "#app/providers/npm/provider.js";
 import Spinner from "ink-spinner";

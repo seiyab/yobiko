@@ -1,4 +1,4 @@
-import { Box, Text, useBoxMetrics, useInput } from "ink";
+import { Box, Text, useInput } from "ink";
 import { useRef, useState } from "react";
 import TextInput from "ink-text-input";
 import { Workspace } from "#app/core/provider.js";
@@ -13,10 +13,7 @@ export function SelectTask({ workspaces, ...rest }: Props) {
 	const [query, setQuery] = useState("");
 	const list = workspaces.flatMap((w) => {
 		return w.tasks.filter(
-			(t) =>
-				t.name.includes(query) ||
-				t.cwd.includes(query) ||
-				t.command.includes(query),
+			(t) => t.name.includes(query) || t.cwd.includes(query) || t.command.includes(query),
 		);
 	});
 	const [cursor, setCursor] = useState(0);
@@ -25,7 +22,7 @@ export function SelectTask({ workspaces, ...rest }: Props) {
 		setCursor(list.length - 1);
 	}
 	const ref = useRef(null);
-	const met = useBoxMetrics(ref);
+	// const met = useBoxMetrics(ref);
 	useInput((input, key) => {
 		if (mode === "insert") {
 			if (key.escape) setMode("normal");
@@ -62,10 +59,7 @@ export function SelectTask({ workspaces, ...rest }: Props) {
 				</Box>
 				<Box ref={ref} flexGrow={1} flexDirection="column" overflow="hidden">
 					{list.map((task, i) => (
-						<Box
-							key={JSON.stringify([task.cwd, task.command])}
-							flexDirection="row"
-						>
+						<Box key={JSON.stringify([task.cwd, task.command])} flexDirection="row">
 							<Text>{i === cursor ? "> " : "  "}</Text>
 							<Text>{`(${task.cwd}) `}</Text>
 							<Text>{task.command}</Text>

@@ -4,7 +4,7 @@ import { Pane } from "./ui/pane.js";
 
 type Props = BoxAttributes;
 
-export function Runs({ ...rest }: BoxAttributes) {
+export function Runs({ ...rest }: Props) {
 	return (
 		<Pane name="Runs" {...rest}>
 			<Text>runs here</Text>

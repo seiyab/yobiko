@@ -19,7 +19,7 @@
 		"check": "oxfmt --check && oxlint && tsc",
 		"check:fix": "oxfmt && oxlint --fix",
 		"test": "vitest --run",
-		"format": "oxlint --fix"
+		"format": "oxfmt"
 	},
 	"dependencies": {
 		"@seiyab/ecq": "0.1.1",
