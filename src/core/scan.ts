@@ -1,12 +1,7 @@
 import { Dirent, PathLike } from "node:fs";
-import { Provider } from "./provider.js";
+import { Provider, Workspace } from "./provider.js";
 import { promises as fs } from "node:fs";
 import { join } from "node:path";
-
-type Workspace = {
-	dir: string;
-	provider: Provider;
-};
 
 type Scanner = {
 	scan: (dir: PathLike, opts: ScanOptions) => Promise<Workspace[]>;
@@ -21,11 +16,13 @@ export function setup(providers: Provider[]): Scanner {
 
 		const ws: Workspace[] = [];
 		for (const provider of providers) {
-			if (!(await provider.matches(path))) continue;
-			ws.push({
-				dir: path.toString(),
-				provider: provider,
-			});
+			try {
+				const w = await provider.workspace(path);
+				if (w == null) continue;
+				ws.push(w);
+			} catch (_) {
+				// skip
+			}
 		}
 
 		using dir = await fs.opendir(path);
