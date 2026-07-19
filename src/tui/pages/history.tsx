@@ -7,7 +7,8 @@ import { TaskStatusIndicator } from "../task-status-indicator.js";
 
 export function History() {
 	const runs = useSyncExternalStore(runner.state.subscribe, runner.state.getSnapshot);
-	const [needle, setNeedle] = useState<string | null>(null);
+	const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
+	const selectedRun = runs.find((run) => run.id === selectedRunId);
 	return (
 		<Box flexDirection="row" flexGrow={1}>
 			<Pane name="Runs" flexGrow={2} flexBasis={0}>
@@ -27,11 +28,11 @@ export function History() {
 							</Box>
 						),
 					}))}
-					onCursor={setNeedle}
+					onCursor={setSelectedRunId}
 				/>
 			</Pane>
 			<Pane name="Output" flexGrow={5} flexBasis={0}>
-				<Text>{needle}</Text>
+				<Text>{selectedRun?.output}</Text>
 			</Pane>
 		</Box>
 	);

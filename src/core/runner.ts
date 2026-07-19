@@ -7,6 +7,7 @@ type Run = {
 	task: Task;
 	status: RunStatus;
 	createdAt: Date;
+	output: string;
 };
 
 export type RunStatus = "running" | "failed" | "succeeded";
@@ -33,6 +34,10 @@ function newRunner(): { spawn: Spawn; state: RunStore } {
 	function spawn(task: Task): void {
 		const id = String(rc.next());
 		const p = spawnProcess(task.command, task.args ?? [], { cwd: task.cwd });
+		p.stdout.setEncoding("utf8");
+		p.stderr.setEncoding("utf8");
+		p.stdout.addListener("data", appendOutput);
+		p.stderr.addListener("data", appendOutput);
 		p.addListener("exit", (code) => {
 			runs = runs.map((run) => {
 				if (run.id !== id) return run;
@@ -50,9 +55,18 @@ function newRunner(): { spawn: Spawn; state: RunStore } {
 				task,
 				status: "running",
 				createdAt: new Date(),
+				output: "",
 			},
 		]);
 		emit();
+
+		function appendOutput(chunk: string): void {
+			runs = runs.map((run) => {
+				if (run.id !== id) return run;
+				return { ...run, output: run.output + chunk };
+			});
+			emit();
+		}
 	}
 
 	function subscribe(listener: () => void): () => void {
