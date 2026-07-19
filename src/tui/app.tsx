@@ -9,13 +9,13 @@ import { SelectTask } from "./select-task/index.js";
 import { Runs } from "./runs.js";
 import { TaskDetail } from "./task-detail.js";
 import { Task } from "#app/core/provider.js";
+import { Launcher } from "./pages/launcher.js";
 
 const s = ecq.client(setup([npm]));
 
 export function App() {
 	const ws = useQuery(s.scan("./", { depth: 3 }));
 	const { exit } = useApp();
-	const [task, setTask] = useState<Task | null>(null);
 	useInput((input) => {
 		if (input === "q") {
 			exit();
@@ -31,13 +31,7 @@ export function App() {
 			) : ws.isError ? (
 				<Text>error</Text>
 			) : (
-				<Box flexDirection="column" flexGrow={1}>
-					<SelectTask flexGrow={5} flexBasis={0} workspaces={ws.data} onHoverTask={setTask} />
-					<Box flexGrow={2} flexBasis={0}>
-						<Runs flexGrow={1} flexBasis={0} />
-						<TaskDetail flexGrow={1} flexBasis={0} task={task} />
-					</Box>
-				</Box>
+				<Launcher workspaces={ws.data} />
 			)}
 			<Box flexGrow={0} flexShrink={0}>
 				<Text>Yobiko</Text>
