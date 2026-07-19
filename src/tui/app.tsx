@@ -5,6 +5,7 @@ import { ecq } from "@seiyab/ecq";
 import { setup } from "#app/core/scan.js";
 import { npm } from "#app/providers/npm/provider.js";
 import { mise } from "#app/providers/mise/provider.js";
+import { uv } from "#app/providers/uv/provider.js";
 import Spinner from "ink-spinner";
 import { SelectTask } from "./select-task/index.js";
 import { Runs } from "./runs.js";
@@ -14,7 +15,7 @@ import { Launcher } from "./pages/launcher.js";
 import { iife } from "#app/utils/iife.js";
 import { History } from "./pages/history.js";
 
-const s = ecq.client(setup([npm, mise]));
+const s = ecq.client(setup([npm, mise, uv]));
 
 export function App() {
 	const ws = useQuery(s.scan("./", { depth: 3 }));
