@@ -1,5 +1,5 @@
 import { runner, RunOutput } from "#app/core/runner.js";
-import { Box, Spacer, Text } from "ink";
+import { Box, Text } from "ink";
 import { useState, useSyncExternalStore } from "react";
 import { Pane } from "../ui/pane.js";
 import { Select } from "../ui/select.js";
@@ -23,8 +23,6 @@ export function History() {
 								<Text>
 									{run.task.command} ${run.task.args?.join(" ")}
 								</Text>
-								<Spacer />
-								<Text color="gray">[{run.createdAt.toISOString()}]</Text>
 							</Box>
 						),
 					}))}

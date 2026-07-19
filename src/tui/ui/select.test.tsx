@@ -8,7 +8,7 @@ describe("<Select />", () => {
 		const opts = options(5);
 		const onSelect = vi.fn();
 		const onCursor = vi.fn();
-		const { lastFrame, stdin, rerender } = render(
+		const { lastFrame, stdin } = render(
 			<Select items={opts} active onSelect={onSelect} onCursor={onCursor} height={6} />,
 		);
 		expect(lastFrame()).toEqual(
@@ -44,7 +44,7 @@ describe("<Select />", () => {
 		const opts = options(10);
 		const onSelect = vi.fn();
 		const onCursor = vi.fn();
-		const { lastFrame, stdin, rerender } = render(
+		const { lastFrame, stdin } = render(
 			<Select items={opts} active onSelect={onSelect} onCursor={onCursor} height={7} />,
 		);
 
@@ -83,7 +83,7 @@ describe("<Select />", () => {
 		const opts = options(10);
 		const onSelect = vi.fn();
 		const onCursor = vi.fn();
-		const { lastFrame, stdin, rerender } = render(
+		const { lastFrame, stdin } = render(
 			<Select items={opts} active onSelect={onSelect} onCursor={onCursor} height={7} />,
 		);
 

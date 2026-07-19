@@ -2,8 +2,7 @@ import { Box, Text } from "ink";
 import { BoxAttributes } from "./ui/box-attributes.js";
 import { Pane } from "./ui/pane.js";
 import { useSyncExternalStore } from "react";
-import { runner, RunStatus } from "#app/core/runner.js";
-import Spinner from "ink-spinner";
+import { runner } from "#app/core/runner.js";
 import { TaskStatusIndicator } from "./task-status-indicator.js";
 
 type Props = BoxAttributes;
