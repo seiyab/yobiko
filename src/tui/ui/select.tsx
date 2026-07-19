@@ -64,21 +64,19 @@ export function Select<T>({
 	if (scroll < 0 || maxScroll < scroll) {
 		setScroll(clamp(scroll, { min: 0, max: maxScroll }));
 	}
-	/*
 	useEffect(() => {
 		const position = needle - scroll;
-		const maxRoom = Math.max(2, Math.floor((height - 1) / 2));
+		const maxRoom = Math.min(2, Math.floor((height - 1) / 2));
 		const roomTop = Math.min(maxRoom, needle);
 		const roomBottom = Math.min(maxRoom, items.length - 1 - needle);
 		const validPosition = clamp(position, {
 			min: roomTop,
-			max: height - roomBottom,
+			max: height - roomBottom - 1,
 		});
 		if (position !== validPosition) {
 			setScroll(scroll - validPosition + position);
 		}
 	}, [needle, scroll, items.length, height]);
-	*/
 
 	return (
 		<Box ref={ref} overflow="hidden" {...rest}>

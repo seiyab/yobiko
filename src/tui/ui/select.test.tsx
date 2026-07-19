@@ -45,6 +45,96 @@ describe("<Select />", () => {
 		});
 		expect(onCursor).toHaveBeenLastCalledWith(2);
 	});
+
+	test("scrolls down", async () => {
+		const opts = options(10);
+		const onSelect = vi.fn();
+		const onCursor = vi.fn();
+		const { lastFrame, stdin, rerender } = render(
+			<Select
+				items={opts}
+				active
+				onSelect={onSelect}
+				onCursor={onCursor}
+				height={7}
+			/>,
+		);
+
+		stdin.write("j".repeat(6));
+		await vi.waitFor(() => {
+			expect(lastFrame()).toEqual(
+				[
+					"  2", //
+					"  3",
+					"  4",
+					"  5",
+					"> 6",
+					"  7",
+					"  8",
+				].join("\n"),
+			);
+		});
+
+		stdin.write("j".repeat(3));
+		await vi.waitFor(() => {
+			expect(lastFrame()).toEqual(
+				[
+					"  3", //
+					"  4",
+					"  5",
+					"  6",
+					"  7",
+					"  8",
+					"> 9",
+				].join("\n"),
+			);
+		});
+	});
+
+	test("scrolls up", async () => {
+		const opts = options(10);
+		const onSelect = vi.fn();
+		const onCursor = vi.fn();
+		const { lastFrame, stdin, rerender } = render(
+			<Select
+				items={opts}
+				active
+				onSelect={onSelect}
+				onCursor={onCursor}
+				height={7}
+			/>,
+		);
+
+		stdin.write("j".repeat(6));
+		await vi.waitFor(() => {
+			expect(lastFrame()).toEqual(
+				[
+					"  2", //
+					"  3",
+					"  4",
+					"  5",
+					"> 6",
+					"  7",
+					"  8",
+				].join("\n"),
+			);
+		});
+
+		stdin.write("k".repeat(3));
+		await vi.waitFor(() => {
+			expect(lastFrame()).toEqual(
+				[
+					"  1", //
+					"  2",
+					"> 3",
+					"  4",
+					"  5",
+					"  6",
+					"  7",
+				].join("\n"),
+			);
+		});
+	});
 });
 
 function options(size: number) {
