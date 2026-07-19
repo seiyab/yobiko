@@ -2,12 +2,17 @@ import { counter } from "#app/utils/counter.js";
 import { Task } from "./provider.js";
 import { spawn as spawnProcess } from "node:child_process";
 
+export type RunOutput = {
+	subscribe: (listener: () => void) => () => void;
+	getSnapshot: () => string;
+};
+
 type Run = {
 	id: string;
 	task: Task;
 	status: RunStatus;
 	createdAt: Date;
-	output: string;
+	output: RunOutput;
 };
 
 export type RunStatus = "running" | "failed" | "succeeded";
@@ -33,11 +38,12 @@ function newRunner(): { spawn: Spawn; state: RunStore } {
 
 	function spawn(task: Task): void {
 		const id = String(rc.next());
+		const output = newOutput();
 		const p = spawnProcess(task.command, task.args ?? [], { cwd: task.cwd });
 		p.stdout.setEncoding("utf8");
 		p.stderr.setEncoding("utf8");
-		p.stdout.addListener("data", appendOutput);
-		p.stderr.addListener("data", appendOutput);
+		p.stdout.addListener("data", output.append);
+		p.stderr.addListener("data", output.append);
 		p.addListener("exit", (code) => {
 			runs = runs.map((run) => {
 				if (run.id !== id) return run;
@@ -55,18 +61,10 @@ function newRunner(): { spawn: Spawn; state: RunStore } {
 				task,
 				status: "running",
 				createdAt: new Date(),
-				output: "",
+				output: output.state,
 			},
 		]);
 		emit();
-
-		function appendOutput(chunk: string): void {
-			runs = runs.map((run) => {
-				if (run.id !== id) return run;
-				return { ...run, output: run.output + chunk };
-			});
-			emit();
-		}
 	}
 
 	function subscribe(listener: () => void): () => void {
@@ -83,6 +81,30 @@ function newRunner(): { spawn: Spawn; state: RunStore } {
 		for (const listener of subscriptions.values()) {
 			listener();
 		}
+	}
+}
+
+function newOutput(): { state: RunOutput; append: (chunk: string) => void } {
+	const subscriptions = new Set<() => void>();
+	let output = "";
+
+	return {
+		state: { subscribe, getSnapshot },
+		append,
+	};
+
+	function subscribe(listener: () => void): () => void {
+		subscriptions.add(listener);
+		return () => subscriptions.delete(listener);
+	}
+
+	function getSnapshot(): string {
+		return output;
+	}
+
+	function append(chunk: string): void {
+		output += chunk;
+		for (const listener of subscriptions) listener();
 	}
 }
 

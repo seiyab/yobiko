@@ -1,4 +1,4 @@
-import { runner } from "#app/core/runner.js";
+import { runner, RunOutput } from "#app/core/runner.js";
 import { Box, Spacer, Text } from "ink";
 import { useState, useSyncExternalStore } from "react";
 import { Pane } from "../ui/pane.js";
@@ -32,8 +32,18 @@ export function History() {
 				/>
 			</Pane>
 			<Pane name="Output" flexGrow={5} flexBasis={0}>
-				<Text>{selectedRun?.output}</Text>
+				<Output output={selectedRun?.output} />
 			</Pane>
 		</Box>
 	);
+}
+
+function Output({ output }: { output?: RunOutput }) {
+	if (output == null) return <Text />;
+	return <RunOutputText output={output} />;
+}
+
+function RunOutputText({ output }: { output: RunOutput }) {
+	const text = useSyncExternalStore(output.subscribe, output.getSnapshot);
+	return <Text>{text}</Text>;
 }
