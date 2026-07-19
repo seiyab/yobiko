@@ -10,21 +10,15 @@ type Item<T> = {
 type Props<T> = {
 	items: Item<T>[];
 	active: boolean;
-	onCursor: (value: T | null) => void;
-	onSelect: (value: T) => void;
+	onCursor?: (value: T | null) => void;
+	onSelect?: (value: T) => void;
 } & BoxAttributes;
 
-export function Select<T>({
-	items,
-	active,
-	onCursor,
-	onSelect,
-	...rest
-}: Props<T>) {
+export function Select<T>({ items, active, onCursor, onSelect, ...rest }: Props<T>) {
 	const [needle, setNeedle] = useState(0);
 	const itemUnderCursor = items.at(needle);
 	useEffect(() => {
-		onCursor(itemUnderCursor?.value ?? null);
+		onCursor?.(itemUnderCursor?.value ?? null);
 	}, [itemUnderCursor?.value]);
 	const validNeedle = clamp(needle, { min: 0, max: items.length - 1 });
 	if (needle !== validNeedle) {
@@ -36,7 +30,7 @@ export function Select<T>({
 
 		if (key.return) {
 			if (itemUnderCursor == null) return;
-			onSelect(itemUnderCursor.value);
+			onSelect?.(itemUnderCursor.value);
 			return;
 		}
 
@@ -82,12 +76,7 @@ export function Select<T>({
 		<Box ref={ref} overflow="hidden" {...rest}>
 			<Box flexDirection="column" position="absolute" top={-scroll}>
 				{items.map((item, i) => (
-					<Box
-						key={JSON.stringify(item.value)}
-						flexDirection="row"
-						height={1}
-						overflow="hidden"
-					>
+					<Box key={JSON.stringify(item.value)} flexDirection="row" height={1} overflow="hidden">
 						<Text>{i === needle ? "> " : "  "}</Text>
 						<Box>{item.display}</Box>
 					</Box>

@@ -4,6 +4,7 @@ import { Pane } from "./ui/pane.js";
 import { useSyncExternalStore } from "react";
 import { runner, RunStatus } from "#app/core/runner.js";
 import Spinner from "ink-spinner";
+import { TaskStatusIndicator } from "./task-status-indicator.js";
 
 type Props = BoxAttributes;
 
@@ -12,9 +13,9 @@ export function Runs({ ...rest }: Props) {
 	return (
 		<Pane name="Runs" {...rest}>
 			<Box flexDirection="column">
-				{runs.map((run) => (
+				{runs.toReversed().map((run) => (
 					<Box flexDirection="row" gap={1}>
-						<Indicator status={run.status} />
+						<TaskStatusIndicator status={run.status} />
 						<Text>
 							{`(${run.task.cwd}) ${run.task.command}`} ${run.task.args?.join(" ")}
 						</Text>
@@ -24,20 +25,3 @@ export function Runs({ ...rest }: Props) {
 		</Pane>
 	);
 }
-
-type IndicatorProps = { status: RunStatus };
-function Indicator({ status }: IndicatorProps) {
-	switch (status) {
-		case "running":
-			return (
-				<Text color="blue">
-					<Spinner type="dots" />
-				</Text>
-			);
-		case "succeeded":
-			return <Text color="green">o</Text>;
-		default:
-			return <Text color="red">!</Text>;
-	}
-}
-Indicator satisfies React.FC<IndicatorProps>;

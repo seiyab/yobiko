@@ -10,19 +10,37 @@ import { Runs } from "./runs.js";
 import { TaskDetail } from "./task-detail.js";
 import { Task } from "#app/core/provider.js";
 import { Launcher } from "./pages/launcher.js";
+import { iife } from "#app/utils/iife.js";
+import { History } from "./pages/history.js";
 
 const s = ecq.client(setup([npm]));
 
 export function App() {
 	const ws = useQuery(s.scan("./", { depth: 3 }));
+	const [tab, setTab] = useState<"launcher" | "project" | "history">("launcher");
 	const { exit } = useApp();
 	useInput((input) => {
-		if (input === "q") {
-			exit();
+		for (const c of input) {
+			switch (c) {
+				case "q":
+					exit();
+					break;
+				case "L":
+					setTab("launcher");
+					break;
+				case "H":
+					setTab("history");
+					break;
+			}
 		}
 	});
 	return (
 		<Box flexDirection="column" alignItems="stretch" width="100%" height="100%">
+			<Box flexDirection="row" gap={3}>
+				<Text underline={tab == "launcher"}>[L]auncher</Text>
+				<Text underline={tab == "project"}>[P]roject</Text>
+				<Text underline={tab == "history"}>[H]istory</Text>
+			</Box>
 			{ws.isPending ? (
 				<Box>
 					<Spinner type="bouncingBar" />
@@ -31,7 +49,18 @@ export function App() {
 			) : ws.isError ? (
 				<Text>error</Text>
 			) : (
-				<Launcher workspaces={ws.data} />
+				iife(() => {
+					switch (tab) {
+						case "launcher":
+							return <Launcher workspaces={ws.data} />;
+						case "project":
+							return <Text>not implemented yet</Text>;
+						case "history":
+							return <History />;
+						default:
+							tab satisfies never;
+					}
+				})
 			)}
 			<Box flexGrow={0} flexShrink={0}>
 				<Text>Yobiko</Text>

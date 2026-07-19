@@ -16,10 +16,7 @@ export function SelectTask({ workspaces, onHoverTask, ...rest }: Props) {
 	const [query, setQuery] = useState("");
 	const list = workspaces.flatMap((w) => {
 		return w.tasks.filter(
-			(t) =>
-				t.name.includes(query) ||
-				t.cwd.includes(query) ||
-				t.command.includes(query),
+			(t) => t.name.includes(query) || t.cwd.includes(query) || t.command.includes(query),
 		);
 	});
 	const [mode, setMode] = useState<"normal" | "insert">("normal");
@@ -40,8 +37,8 @@ export function SelectTask({ workspaces, onHoverTask, ...rest }: Props) {
 	});
 
 	return (
-		<Pane name="Select Task" flexDirection="column" {...rest}>
-			<Box flexDirection="column">
+		<Pane name="Select Task" flexDirection="column" flexGrow={1} {...rest}>
+			<Box flexDirection="column" flexGrow={1}>
 				<Box flexDirection="row" borderBottom borderColor="gray">
 					<Text>Filter[/]: </Text>
 					<TextInput
@@ -65,17 +62,8 @@ export function SelectTask({ workspaces, onHoverTask, ...rest }: Props) {
 					active={mode === "normal"}
 					onCursor={onHoverTask}
 					onSelect={(task) => runner.spawn(task)}
+					flexGrow={1}
 				/>
-				{/*<Box ref={ref} flexGrow={1} flexDirection="column" overflow="hidden">
-					{list.map((task, i) => (
-						<Box key={JSON.stringify([task.cwd, task.command, task.args])} flexDirection="row">
-							<Text>{i === cursor ? "> " : "  "}</Text>
-							<Text>{`(${task.cwd}) `}</Text>
-							<Text>{task.command}</Text>
-							<Text> {task.args?.join(" ")}</Text>
-						</Box>
-					))}
-				</Box>*/}
 			</Box>
 		</Pane>
 	);

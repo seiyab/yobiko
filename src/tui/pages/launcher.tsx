@@ -13,12 +13,7 @@ export function Launcher({ workspaces }: Props) {
 	const [task, setTask] = useState<Task | null>(null);
 	return (
 		<Box flexDirection="column" flexGrow={1}>
-			<SelectTask
-				flexGrow={5}
-				flexBasis={0}
-				workspaces={workspaces}
-				onHoverTask={setTask}
-			/>
+			<SelectTask flexGrow={5} flexBasis={0} workspaces={workspaces} onHoverTask={setTask} />
 			<Box flexGrow={2} flexBasis={0}>
 				<Runs flexGrow={1} flexBasis={0} />
 				<TaskDetail flexGrow={1} flexBasis={0} task={task} />

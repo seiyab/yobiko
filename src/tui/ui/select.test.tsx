@@ -9,13 +9,7 @@ describe("<Select />", () => {
 		const onSelect = vi.fn();
 		const onCursor = vi.fn();
 		const { lastFrame, stdin, rerender } = render(
-			<Select
-				items={opts}
-				active
-				onSelect={onSelect}
-				onCursor={onCursor}
-				height={6}
-			/>,
+			<Select items={opts} active onSelect={onSelect} onCursor={onCursor} height={6} />,
 		);
 		expect(lastFrame()).toEqual(
 			[
@@ -51,13 +45,7 @@ describe("<Select />", () => {
 		const onSelect = vi.fn();
 		const onCursor = vi.fn();
 		const { lastFrame, stdin, rerender } = render(
-			<Select
-				items={opts}
-				active
-				onSelect={onSelect}
-				onCursor={onCursor}
-				height={7}
-			/>,
+			<Select items={opts} active onSelect={onSelect} onCursor={onCursor} height={7} />,
 		);
 
 		stdin.write("j".repeat(6));
@@ -96,13 +84,7 @@ describe("<Select />", () => {
 		const onSelect = vi.fn();
 		const onCursor = vi.fn();
 		const { lastFrame, stdin, rerender } = render(
-			<Select
-				items={opts}
-				active
-				onSelect={onSelect}
-				onCursor={onCursor}
-				height={7}
-			/>,
+			<Select items={opts} active onSelect={onSelect} onCursor={onCursor} height={7} />,
 		);
 
 		stdin.write("j".repeat(6));
