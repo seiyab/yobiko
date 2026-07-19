@@ -35,6 +35,15 @@ describe("scan", () => {
 		const root = await fixture({ ".git/workspace": "", "visible/workspace": "" });
 		expect(await scan(root)).toEqual([join(root, "visible")]);
 	});
+
+	test("always skips node_modules", async () => {
+		const root = await fixture({
+			".gitignore": "!node_modules/\n",
+			"node_modules/package/workspace": "",
+			"visible/workspace": "",
+		});
+		expect(await scan(root)).toEqual([join(root, "visible")]);
+	});
 });
 
 async function scan(root: string): Promise<string[]> {

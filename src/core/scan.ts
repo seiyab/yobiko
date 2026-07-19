@@ -4,6 +4,8 @@ import { promises as fs } from "node:fs";
 import { join, relative } from "node:path";
 import ignore, { Ignore } from "ignore";
 
+const ignoredDirectories = new Set([".git", "node_modules"]);
+
 type Scanner = {
 	scan: (dir: PathLike, opts: ScanOptions) => Promise<Workspace[]>;
 };
@@ -38,7 +40,7 @@ export function setup(providers: Provider[]): Scanner {
 		let e: Dirent | null;
 		while ((e = await dir.read())) {
 			if (!e.isDirectory()) continue;
-			if (e.name === ".git") continue;
+			if (ignoredDirectories.has(e.name)) continue;
 
 			const p = join(path, e.name);
 			if (isIgnored(p, nestedIgnores)) continue;
