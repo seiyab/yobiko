@@ -1,11 +1,12 @@
 import { Box, Text, useInput } from "ink";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import TextInput from "ink-text-input";
 import { Task, Workspace } from "#app/core/provider.js";
 import { Pane } from "#app/tui/ui/pane.js";
 import { BoxAttributes } from "../ui/box-attributes.js";
 import { runner } from "#app/core/runner.js";
 import { Select } from "../ui/select.js";
+import { useFocus, useKeyMap } from "../input.js";
 
 type Props = {
 	workspaces: Workspace[];
@@ -19,22 +20,20 @@ export function SelectTask({ workspaces, onHoverTask, ...rest }: Props) {
 			(t) => t.name.includes(query) || t.cwd.includes(query) || t.command.includes(query),
 		);
 	});
-	const [mode, setMode] = useState<"normal" | "insert">("normal");
+	const queryFocus = useFocus();
 	useInput((input, key) => {
-		if (mode === "insert") {
-			if (key.escape) setMode("normal");
-			if (key.ctrl && input === "[") setMode("normal");
-			return;
-		}
-		switch (input) {
-			case "i":
-			case "/":
-				setMode("insert");
-				break;
-			default:
-			// nothing
-		}
+		if (!queryFocus.active) return;
+		if (key.escape) queryFocus.release();
+		if (key.ctrl && input === "[") queryFocus.release();
 	});
+	useKeyMap(
+		useMemo(
+			() => ({
+				"/": { action: queryFocus.capture, description: "input search query" },
+			}),
+			[],
+		),
+	);
 
 	return (
 		<Pane name="Select Task" flexDirection="column" flexGrow={1} {...rest}>
@@ -43,9 +42,9 @@ export function SelectTask({ workspaces, onHoverTask, ...rest }: Props) {
 					<Text>Filter[/]: </Text>
 					<TextInput
 						value={query}
-						focus={mode === "insert"}
+						focus={queryFocus.active}
 						onChange={setQuery}
-						onSubmit={() => setMode("normal")}
+						onSubmit={queryFocus.release}
 					/>
 				</Box>
 				<Select
@@ -59,7 +58,7 @@ export function SelectTask({ workspaces, onHoverTask, ...rest }: Props) {
 							</Box>
 						),
 					}))}
-					active={mode === "normal"}
+					active={!queryFocus.active}
 					onCursor={onHoverTask}
 					onSelect={(task) => runner.spawn(task)}
 					flexGrow={1}

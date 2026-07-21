@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { useApp, Box, Text, useInput } from "ink";
+import { useMemo, useState } from "react";
+import { useApp, Box, Text } from "ink";
 import { useQuery } from "@tanstack/react-query";
 import { ecq } from "@seiyab/ecq";
 import { setup } from "#app/core/scan.js";
@@ -10,6 +10,7 @@ import Spinner from "ink-spinner";
 import { Launcher } from "./pages/launcher.js";
 import { iife } from "#app/utils/iife.js";
 import { History } from "./pages/history.js";
+import { useKeyMap } from "./input.js";
 
 const s = ecq.client(setup([npm, mise, uv]));
 
@@ -17,21 +18,22 @@ export function App() {
 	const ws = useQuery(s.scan("./", { depth: 3 }));
 	const [tab, setTab] = useState<"launcher" | "project" | "history">("launcher");
 	const { exit } = useApp();
-	useInput((input) => {
-		for (const c of input) {
-			switch (c) {
-				case "q":
-					exit();
-					break;
-				case "L":
-					setTab("launcher");
-					break;
-				case "H":
-					setTab("history");
-					break;
-			}
-		}
-	});
+	useKeyMap(
+		useMemo(
+			() => ({
+				q: { action: exit, description: "exit from yobiko" },
+				L: {
+					action: () => setTab("launcher"),
+					description: "open launcher view",
+				},
+				H: {
+					action: () => setTab("history"),
+					description: "open history view",
+				},
+			}),
+			[exit],
+		),
+	);
 	return (
 		<Box flexDirection="column" alignItems="stretch" width="100%" height="100%">
 			<Box flexDirection="row" gap={3}>
