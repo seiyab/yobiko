@@ -12,7 +12,7 @@ type KeyAction = {
 	action: () => void;
 	description: string;
 };
-type LocalKeyMap = Record<string, KeyAction>;
+type LocalKeyMap = Partial<Record<string, KeyAction>>;
 
 type ComponentID = number;
 
@@ -39,13 +39,13 @@ function newKeyMap() {
 			if (focus != null) return;
 			switch (true) {
 				case key.return:
-					keyMap["return"]?.action();
+					keyMap["<return>"]?.action();
 					break;
 				default:
 				// nop
 			}
 			for (const c of input) {
-				const k = key.ctrl ? `C-${c}` : c;
+				const k = key.ctrl ? `<c-${c}>` : c;
 				keyMap[k]?.action();
 			}
 		});
@@ -111,7 +111,12 @@ function newKeyMap() {
 	function useHelp(): Help {
 		const rs = useSyncExternalStore(subscribe, getSnapshot);
 		return useMemo(
-			() => Object.fromEntries(Object.values(rs).flatMap((r) => Object.entries(r))),
+			() =>
+				Object.fromEntries(
+					Object.values(rs).flatMap((r) =>
+						Object.entries(r).filter((e): e is [string, KeyAction] => e[1] !== undefined),
+					),
+				),
 			[registrations],
 		);
 

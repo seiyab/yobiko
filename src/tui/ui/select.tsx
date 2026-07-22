@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { BoxAttributes } from "./box-attributes.js";
-import { Box, Text, useBoxMetrics, useInput } from "ink";
+import { Box, Text, useBoxMetrics } from "ink";
+import { useKeyMap } from "../input.js";
 
 type Item<T> = {
 	value: T;
@@ -10,11 +11,19 @@ type Item<T> = {
 type Props<T> = {
 	items: Item<T>[];
 	active: boolean;
+	selectDescription?: string;
 	onCursor?: (value: T | null) => void;
 	onSelect?: (value: T) => void;
 } & BoxAttributes;
 
-export function Select<T>({ items, active, onCursor, onSelect, ...rest }: Props<T>) {
+export function Select<T>({
+	items,
+	active,
+	selectDescription,
+	onCursor,
+	onSelect,
+	...rest
+}: Props<T>) {
 	const [needle, setNeedle] = useState(0);
 	const itemUnderCursor = items.at(needle);
 	useEffect(() => {
@@ -25,29 +34,37 @@ export function Select<T>({ items, active, onCursor, onSelect, ...rest }: Props<
 		setNeedle(validNeedle);
 	}
 
-	useInput((input, key) => {
-		if (!active) return;
+	useKeyMap(
+		useMemo(() => {
+			if (!active) return {};
+			const range = { min: 0, max: items.length - 1 };
+			return {
+				k: {
+					action: () => setNeedle((prev) => clamp(prev - 1, range)),
+					description: "move cursor up",
+				},
+				j: {
+					action: () => setNeedle((prev) => clamp(prev + 1, range)),
+					description: "move cursor down",
+				},
+			};
+		}, [items.length, active]),
+	);
 
-		if (key.return) {
-			if (itemUnderCursor == null) return;
-			onSelect?.(itemUnderCursor.value);
-			return;
-		}
-
-		const range = { min: 0, max: items.length - 1 };
-		for (const c of input) {
-			switch (c) {
-				case "j":
-					setNeedle((prev) => clamp(prev + 1, range));
-					break;
-				case "k":
-					setNeedle((prev) => clamp(prev - 1, range));
-					break;
-				default:
-				// nop
-			}
-		}
-	});
+	useKeyMap(
+		useMemo(() => {
+			if (!active) return {};
+			return {
+				"<return>": {
+					action: () => {
+						if (itemUnderCursor == null) return;
+						onSelect?.(itemUnderCursor.value);
+					},
+					description: selectDescription ?? "select item under cursor",
+				},
+			};
+		}, [itemUnderCursor, selectDescription]),
+	);
 
 	const ref = useRef(null);
 	const mx = useBoxMetrics(ref);
