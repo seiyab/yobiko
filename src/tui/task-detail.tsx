@@ -15,6 +15,7 @@ export function TaskDetail({ task, ...rest }: Props) {
 					<Property name="directory" value={task.cwd} />
 					<Property name="name" value={task.name} />
 					<Property name="command" value={`${task.command} ${task.args?.join(" ") ?? ""}`} />
+					{task.content != null && <Property name="contend" value={task.content} />}
 				</Box>
 			)}
 		</Pane>

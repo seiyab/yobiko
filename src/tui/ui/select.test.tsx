@@ -6,8 +6,8 @@ import { Select } from "./select.js";
 describe("<Select />", () => {
 	test("can move cursor", async () => {
 		const opts = options(5);
-		const onSelect = vi.fn();
-		const onCursor = vi.fn();
+		const onSelect = vi.fn<() => void>();
+		const onCursor = vi.fn<() => void>();
 		const { lastFrame, stdin } = render(
 			<Select items={opts} active onSelect={onSelect} onCursor={onCursor} height={6} />,
 		);
@@ -42,8 +42,8 @@ describe("<Select />", () => {
 
 	test("scrolls down", async () => {
 		const opts = options(10);
-		const onSelect = vi.fn();
-		const onCursor = vi.fn();
+		const onSelect = vi.fn<() => void>();
+		const onCursor = vi.fn<() => void>();
 		const { lastFrame, stdin } = render(
 			<Select items={opts} active onSelect={onSelect} onCursor={onCursor} height={7} />,
 		);
@@ -81,8 +81,8 @@ describe("<Select />", () => {
 
 	test("scrolls up", async () => {
 		const opts = options(10);
-		const onSelect = vi.fn();
-		const onCursor = vi.fn();
+		const onSelect = vi.fn<() => void>();
+		const onCursor = vi.fn<() => void>();
 		const { lastFrame, stdin } = render(
 			<Select items={opts} active onSelect={onSelect} onCursor={onCursor} height={7} />,
 		);

@@ -28,7 +28,7 @@ export function Select<T>({
 	const itemUnderCursor = items.at(needle);
 	useEffect(() => {
 		onCursor?.(itemUnderCursor?.value ?? null);
-	}, [itemUnderCursor?.value]);
+	}, [itemUnderCursor?.value, onCursor]);
 	const validNeedle = clamp(needle, { min: 0, max: items.length - 1 });
 	if (needle !== validNeedle) {
 		setNeedle(validNeedle);
@@ -63,7 +63,7 @@ export function Select<T>({
 					description: selectDescription ?? "select item under cursor",
 				},
 			};
-		}, [itemUnderCursor, selectDescription]),
+		}, [active, itemUnderCursor, selectDescription, onSelect]),
 	);
 
 	const ref = useRef(null);

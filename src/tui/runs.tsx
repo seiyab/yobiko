@@ -13,7 +13,7 @@ export function Runs({ ...rest }: Props) {
 		<Pane name="Runs" {...rest}>
 			<Box flexDirection="column">
 				{runs.toReversed().map((run) => (
-					<Box flexDirection="row" gap={1}>
+					<Box key={run.id} flexDirection="row" gap={1}>
 						<TaskStatusIndicator status={run.status} />
 						<Text>
 							{`(${run.task.cwd}) ${run.task.command}`} ${run.task.args?.join(" ")}

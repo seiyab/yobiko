@@ -31,7 +31,7 @@ export function SelectTask({ workspaces, onHoverTask, ...rest }: Props) {
 			() => ({
 				"/": { action: queryFocus.capture, description: "input search query" },
 			}),
-			[],
+			[queryFocus.capture],
 		),
 	);
 

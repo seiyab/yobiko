@@ -90,7 +90,7 @@ function newKeyMap() {
 					emitFocus();
 				},
 			}),
-			[currentFocus],
+			[currentFocus, id],
 		);
 
 		function getSnapshot() {
@@ -117,7 +117,7 @@ function newKeyMap() {
 						Object.entries(r).filter((e): e is [string, KeyAction] => e[1] !== undefined),
 					),
 				),
-			[registrations],
+			[rs],
 		);
 
 		function getSnapshot() {
