@@ -17,21 +17,41 @@ export function SelectTask({ workspaces, onHoverTask, ...rest }: Props) {
 	const [query, setQuery] = useState("");
 	const list = workspaces.flatMap((w) => {
 		return w.tasks.filter(
-			(t) => t.name.includes(query) || t.cwd.includes(query) || t.command.includes(query),
+			(t) =>
+				t.name.includes(query) ||
+				t.cwd.includes(query) ||
+				t.command.includes(query),
 		);
 	});
 	const queryFocus = useFocus();
-	useInput((input, key) => {
-		if (!queryFocus.active) return;
-		if (key.escape) queryFocus.release();
-		if (key.ctrl && input === "[") queryFocus.release();
-	});
+	useKeyMap(
+		useMemo(
+			() => ({
+				"<esc>": {
+					action: () => queryFocus.release,
+					description: "blur from search query",
+					focus: queryFocus.id,
+				},
+				"<c-[>": {
+					action: () => queryFocus.release,
+					description: "blur from search query",
+					focus: queryFocus.id,
+				},
+			}),
+			[queryFocus.release, queryFocus.id],
+		),
+	);
 	useKeyMap(
 		useMemo(
 			() => ({
 				"/": { action: queryFocus.capture, description: "input search query" },
+				"<c-u>": {
+					action: () => setQuery(""),
+					description: "clear search query",
+					focus: queryFocus.id,
+				},
 			}),
-			[queryFocus.capture],
+			[queryFocus.capture, queryFocus.id],
 		),
 	);
 

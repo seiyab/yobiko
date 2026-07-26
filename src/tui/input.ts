@@ -1,8 +1,10 @@
 import { counter } from "#app/utils/counter.js";
 import { useInput } from "ink";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { newState } from "./state.js";
 
 type Focus = {
+	id: FocusID;
 	active: boolean;
 	capture: () => void;
 	release: () => void;
@@ -11,20 +13,20 @@ type Focus = {
 type KeyAction = {
 	action: () => void;
 	description: string;
+	focus?: FocusID;
 };
 type LocalKeyMap = Partial<Record<string, KeyAction>>;
 
 type ComponentID = number;
+type FocusID = number;
 
 type Help = Record<string, KeyAction>;
 
 function newKeyMap() {
 	const componentIDs = counter();
-	let registrations: Record<ComponentID, LocalKeyMap> = {};
-	const registrationSubs = new Set<() => void>();
+	const registrations = newState<Record<ComponentID, LocalKeyMap>>({});
 
-	let focus: ComponentID | null = null;
-	const focusSubs = new Set<() => void>();
+	const focus = newState<FocusID | null>(null);
 
 	return {
 		useKeyMap,
@@ -36,97 +38,87 @@ function newKeyMap() {
 		const [id] = useState(() => componentIDs.next());
 
 		useInput((input, key) => {
-			if (focus != null) return;
 			switch (true) {
 				case key.return:
-					keyMap["<return>"]?.action();
-					break;
+					handle("<return>");
+					return;
+				case key.tab:
+					handle("<tab>");
+					return;
+				case key.escape:
+					handle("<esc>");
+					return;
 				default:
 				// nop
 			}
 			for (const c of input) {
 				const k = key.ctrl ? `<c-${c}>` : c;
-				keyMap[k]?.action();
+				handle(k);
+			}
+
+			function handle(bind: string) {
+				const m = keyMap[bind];
+				if (m == null) return;
+				// const focusID = focus.getSnapshot();
+				// if (focusID != null && m.focus !== focusID) return;
+				m?.action();
 			}
 		});
 
 		useEffect(() => {
-			registrations = {
-				...registrations,
+			registrations.update((prev) => ({
+				...prev,
 				[id]: keyMap,
-			};
-			emitRegistration();
+			}));
 
 			return () => {
-				registrations = Object.fromEntries(
-					Object.entries(registrations).filter(([key]) => key != String(id)),
+				registrations.update((prev) =>
+					Object.fromEntries(
+						Object.entries(prev).filter(([key]) => key != String(id)),
+					),
 				);
-				emitRegistration();
 			};
 		}, [id, keyMap]);
-
-		function emitRegistration() {
-			for (const s of registrationSubs) {
-				s();
-			}
-		}
 	}
 
 	function useFocus(): Focus {
 		const [id] = useState(() => componentIDs.next());
-		const currentFocus = useSyncExternalStore(subscribe, getSnapshot);
+		const currentFocus = useSyncExternalStore(
+			focus.subscribe,
+			focus.getSnapshot,
+		);
 
 		return useMemo(
 			() => ({
+				id,
 				active: currentFocus === id,
-				capture: () => {
-					if (focus === id) return;
-					focus = id;
-					emitFocus();
-				},
-				release: () => {
-					if (focus !== id) return;
-					focus = null;
-					emitFocus();
-				},
+				capture: () => focus.update(() => id),
+				release: () =>
+					focus.update((prev) => {
+						if (prev === id) return null;
+						return prev;
+					}),
 			}),
 			[currentFocus, id],
 		);
-
-		function getSnapshot() {
-			return focus;
-		}
-		function subscribe(listener: () => void): () => void {
-			focusSubs.add(listener);
-			return () => focusSubs.delete(listener);
-		}
-
-		function emitFocus() {
-			for (const s of focusSubs) {
-				s();
-			}
-		}
 	}
 
 	function useHelp(): Help {
-		const rs = useSyncExternalStore(subscribe, getSnapshot);
+		const rs = useSyncExternalStore(
+			registrations.subscribe,
+			registrations.getSnapshot,
+		);
 		return useMemo(
 			() =>
 				Object.fromEntries(
 					Object.values(rs).flatMap((r) =>
-						Object.entries(r).filter((e): e is [string, KeyAction] => e[1] !== undefined),
+						Object.entries(r).filter(
+							(e): e is [string, KeyAction] => e[1] !== undefined,
+						),
 					),
 				),
 			[rs],
 		);
-
-		function getSnapshot() {
-			return registrations;
-		}
-		function subscribe(listener: () => void): () => void {
-			registrationSubs.add(listener);
-			return () => registrationSubs.delete(listener);
-		}
 	}
 }
 

@@ -47,6 +47,10 @@ export function Select<T>({
 					action: () => setNeedle((prev) => clamp(prev + 1, range)),
 					description: "move cursor down",
 				},
+				"<c-n>": {
+					action: () => setNeedle((prev) => clamp(prev + 1, range)),
+					description: "move cursor down",
+				},
 			};
 		}, [items.length, active]),
 	);
