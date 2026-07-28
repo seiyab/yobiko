@@ -29,15 +29,15 @@ function newKeyMap() {
 	const focus = newState<FocusID | null>(null);
 
 	return {
+		KeyMapListener,
 		useKeyMap,
 		useFocus,
 		useHelp,
 	};
 
-	function useKeyMap(keyMap: LocalKeyMap) {
-		const [id] = useState(() => componentIDs.next());
-
+	function KeyMapListener() {
 		useInput((input, key) => {
+			const keyMap = registrations.getSnapshot();
 			switch (true) {
 				case key.return:
 					handle("<return>");
@@ -57,13 +57,20 @@ function newKeyMap() {
 			}
 
 			function handle(bind: string) {
-				const m = keyMap[bind];
-				if (m == null) return;
-				// const focusID = focus.getSnapshot();
-				// if (focusID != null && m.focus !== focusID) return;
-				m?.action();
+				for (const km of Object.values(keyMap)) {
+					const m = km[bind];
+					if (m == null) continue;
+					// const focusID = focus.getSnapshot();
+					// if (focusID != null && m.focus !== focusID) return;
+					m?.action();
+				}
 			}
 		});
+		return null;
+	}
+
+	function useKeyMap(keyMap: LocalKeyMap) {
+		const [id] = useState(() => componentIDs.next());
 
 		useEffect(() => {
 			registrations.update((prev) => ({
@@ -73,9 +80,7 @@ function newKeyMap() {
 
 			return () => {
 				registrations.update((prev) =>
-					Object.fromEntries(
-						Object.entries(prev).filter(([key]) => key != String(id)),
-					),
+					Object.fromEntries(Object.entries(prev).filter(([key]) => key != String(id))),
 				);
 			};
 		}, [id, keyMap]);
@@ -83,10 +88,7 @@ function newKeyMap() {
 
 	function useFocus(): Focus {
 		const [id] = useState(() => componentIDs.next());
-		const currentFocus = useSyncExternalStore(
-			focus.subscribe,
-			focus.getSnapshot,
-		);
+		const currentFocus = useSyncExternalStore(focus.subscribe, focus.getSnapshot);
 
 		return useMemo(
 			() => ({
@@ -104,17 +106,12 @@ function newKeyMap() {
 	}
 
 	function useHelp(): Help {
-		const rs = useSyncExternalStore(
-			registrations.subscribe,
-			registrations.getSnapshot,
-		);
+		const rs = useSyncExternalStore(registrations.subscribe, registrations.getSnapshot);
 		return useMemo(
 			() =>
 				Object.fromEntries(
 					Object.values(rs).flatMap((r) =>
-						Object.entries(r).filter(
-							(e): e is [string, KeyAction] => e[1] !== undefined,
-						),
+						Object.entries(r).filter((e): e is [string, KeyAction] => e[1] !== undefined),
 					),
 				),
 			[rs],
@@ -122,4 +119,4 @@ function newKeyMap() {
 	}
 }
 
-export const { useKeyMap, useFocus, useHelp } = newKeyMap();
+export const { KeyMapListener, useKeyMap, useFocus, useHelp } = newKeyMap();

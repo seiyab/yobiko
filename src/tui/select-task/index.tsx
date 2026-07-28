@@ -1,5 +1,5 @@
-import { Box, Text, useInput } from "ink";
-import { useMemo, useState } from "react";
+import { Box, Text } from "ink";
+import { useState } from "react";
 import TextInput from "ink-text-input";
 import { Task, Workspace } from "#app/core/provider.js";
 import { Pane } from "#app/tui/ui/pane.js";
@@ -17,43 +17,30 @@ export function SelectTask({ workspaces, onHoverTask, ...rest }: Props) {
 	const [query, setQuery] = useState("");
 	const list = workspaces.flatMap((w) => {
 		return w.tasks.filter(
-			(t) =>
-				t.name.includes(query) ||
-				t.cwd.includes(query) ||
-				t.command.includes(query),
+			(t) => t.name.includes(query) || t.cwd.includes(query) || t.command.includes(query),
 		);
 	});
 	const queryFocus = useFocus();
-	useKeyMap(
-		useMemo(
-			() => ({
-				"<esc>": {
-					action: () => queryFocus.release,
-					description: "blur from search query",
-					focus: queryFocus.id,
-				},
-				"<c-[>": {
-					action: () => queryFocus.release,
-					description: "blur from search query",
-					focus: queryFocus.id,
-				},
-			}),
-			[queryFocus.release, queryFocus.id],
-		),
-	);
-	useKeyMap(
-		useMemo(
-			() => ({
-				"/": { action: queryFocus.capture, description: "input search query" },
-				"<c-u>": {
-					action: () => setQuery(""),
-					description: "clear search query",
-					focus: queryFocus.id,
-				},
-			}),
-			[queryFocus.capture, queryFocus.id],
-		),
-	);
+	useKeyMap({
+		"<esc>": {
+			action: queryFocus.release,
+			description: "blur from search query",
+			focus: queryFocus.id,
+		},
+		"<c-[>": {
+			action: queryFocus.release,
+			description: "blur from search query",
+			focus: queryFocus.id,
+		},
+	});
+	useKeyMap({
+		"/": { action: queryFocus.capture, description: "input search query" },
+		"<c-u>": {
+			action: () => setQuery(""),
+			description: "clear search query",
+			focus: queryFocus.id,
+		},
+	});
 
 	return (
 		<Pane name="Select Task" flexDirection="column" flexGrow={1} {...rest}>
