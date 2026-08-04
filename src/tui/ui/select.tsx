@@ -58,6 +58,7 @@ export function Select<T>({
 	useKeyMap(
 		useMemo(() => {
 			if (!active) return {};
+			if (!onSelect) return {};
 			return {
 				"<return>": {
 					action: () => {

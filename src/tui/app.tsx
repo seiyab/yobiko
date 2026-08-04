@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useApp, Box, Text } from "ink";
 import { useQuery } from "@tanstack/react-query";
 import { ecq } from "@seiyab/ecq";
@@ -11,36 +11,47 @@ import { Launcher } from "./pages/launcher.js";
 import { iife } from "#app/utils/iife.js";
 import { History } from "./pages/history.js";
 import { useKeyMap } from "./input.js";
+import { OneShot } from "./pages/one-shot.js";
 
 const s = ecq.client(setup([npm, mise, uv]));
 
 export function App() {
 	const ws = useQuery(s.scan("./", { depth: 3 }));
+	const [mode, setMode] = useState<"one-shot" | "dashboard">("one-shot");
 	const [tab, setTab] = useState<"launcher" | "project" | "history">("launcher");
 	const { exit } = useApp();
+	useKeyMap({
+		q: { action: exit, description: "exit from yobiko" },
+	});
 	useKeyMap(
-		useMemo(
-			() => ({
-				q: { action: exit, description: "exit from yobiko" },
-				L: {
-					action: () => setTab("launcher"),
-					description: "open launcher view",
-				},
-				H: {
-					action: () => setTab("history"),
-					description: "open history view",
-				},
-			}),
-			[exit],
-		),
+		mode === "one-shot" && {
+			"<c-d>": {
+				action: () => setMode("dashboard"),
+				description: "switch to dashboard",
+			},
+		},
+	);
+	useKeyMap(
+		mode === "dashboard" && {
+			L: {
+				action: () => setTab("launcher"),
+				description: "open launcher view",
+			},
+			H: {
+				action: () => setTab("history"),
+				description: "open history view",
+			},
+		},
 	);
 	return (
 		<Box flexDirection="column" alignItems="stretch" width="100%" height="100%">
-			<Box flexDirection="row" gap={3}>
-				<Text underline={tab == "launcher"}>[L]auncher</Text>
-				<Text underline={tab == "project"}>[P]roject</Text>
-				<Text underline={tab == "history"}>[H]istory</Text>
-			</Box>
+			{mode === "dashboard" && (
+				<Box flexDirection="row" gap={3}>
+					<Text underline={tab == "launcher"}>[L]auncher</Text>
+					<Text underline={tab == "project"}>[P]roject</Text>
+					<Text underline={tab == "history"}>[H]istory</Text>
+				</Box>
+			)}
 			{ws.isPending ? (
 				<Box>
 					<Spinner type="bouncingBar" />
@@ -50,6 +61,7 @@ export function App() {
 				<Text>error</Text>
 			) : (
 				iife(() => {
+					if (mode === "one-shot") return <OneShot workspaces={ws.data} />;
 					switch (tab) {
 						case "launcher":
 							return <Launcher workspaces={ws.data} />;

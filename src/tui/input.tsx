@@ -69,10 +69,11 @@ function newKeyMap() {
 		return null;
 	}
 
-	function useKeyMap(keyMap: LocalKeyMap) {
+	function useKeyMap(keyMap: LocalKeyMap | false) {
 		const [id] = useState(() => componentIDs.next());
 
 		useEffect(() => {
+			if (!keyMap) return;
 			registrations.update((prev) => ({
 				...prev,
 				[id]: keyMap,
