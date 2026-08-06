@@ -1,7 +1,8 @@
-import { Text } from "ink";
+import {  Text } from "ink";
 import { render } from "ink-testing-library";
 import { describe, expect, test, vi } from "vitest";
 import { Select } from "./select.js";
+import { KeyMapListener } from "../input.js";
 
 describe("<Select />", () => {
 	test("can move cursor", async () => {
@@ -9,7 +10,10 @@ describe("<Select />", () => {
 		const onSelect = vi.fn<() => void>();
 		const onCursor = vi.fn<() => void>();
 		const { lastFrame, stdin } = render(
-			<Select items={opts} active onSelect={onSelect} onCursor={onCursor} height={6} />,
+			<>
+				<KeyMapListener />
+				<Select items={opts} active onSelect={onSelect} onCursor={onCursor} height={6} />
+			</>
 		);
 		expect(lastFrame()).toEqual(
 			[
@@ -45,7 +49,10 @@ describe("<Select />", () => {
 		const onSelect = vi.fn<() => void>();
 		const onCursor = vi.fn<() => void>();
 		const { lastFrame, stdin } = render(
-			<Select items={opts} active onSelect={onSelect} onCursor={onCursor} height={7} />,
+			<>
+				<Select items={opts} active onSelect={onSelect} onCursor={onCursor} height={7} />
+				<KeyMapListener />
+			</>,
 		);
 
 		stdin.write("j".repeat(6));
@@ -84,7 +91,10 @@ describe("<Select />", () => {
 		const onSelect = vi.fn<() => void>();
 		const onCursor = vi.fn<() => void>();
 		const { lastFrame, stdin } = render(
-			<Select items={opts} active onSelect={onSelect} onCursor={onCursor} height={7} />,
+			<>
+				<Select items={opts} active onSelect={onSelect} onCursor={onCursor} height={7} />
+				<KeyMapListener />
+			</>,
 		);
 
 		stdin.write("j".repeat(6));
