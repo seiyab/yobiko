@@ -1,5 +1,5 @@
 import { Box, Text } from "ink";
-import { forwardRef, useImperativeHandle, useState } from "react";
+import { useState } from "react";
 import TextInput from "ink-text-input";
 import { Task, Workspace } from "#app/core/provider.js";
 import { Pane } from "#app/tui/ui/pane.js";
@@ -12,12 +12,7 @@ type Props = {
 	onHoverTask: (task: Task | null) => void;
 } & BoxAttributes;
 
-type Handle = {
-	focusQuery: () => void;
-};
-export type SelectTaskHandle = Handle;
-
-export const SelectTask = forwardRef<Handle, Props>(({ workspaces, onHoverTask, ...rest }, ref) => {
+export function SelectTask({ workspaces, onHoverTask, ...rest }: Props) {
 	const [query, setQuery] = useState("");
 	const list = workspaces.flatMap((w) => {
 		return w.tasks.filter(
@@ -25,9 +20,6 @@ export const SelectTask = forwardRef<Handle, Props>(({ workspaces, onHoverTask, 
 		);
 	});
 	const queryFocus = useFocus();
-	useImperativeHandle<Handle, Handle>(ref, () => ({ focusQuery: queryFocus.capture }), [
-		queryFocus.capture,
-	]);
 	useKeyMap({
 		"<esc>": {
 			action: queryFocus.release,
@@ -79,4 +71,4 @@ export const SelectTask = forwardRef<Handle, Props>(({ workspaces, onHoverTask, 
 			</Box>
 		</Pane>
 	);
-});
+}
