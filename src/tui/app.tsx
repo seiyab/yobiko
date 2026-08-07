@@ -46,7 +46,7 @@ export function App() {
 	return (
 		<Box flexDirection="column" alignItems="stretch" width="100%" height="100%">
 			{mode === "dashboard" && (
-				<Box flexDirection="row" gap={3}>
+				<Box flexDirection="row" gap={3} height={1} flexGrow={0} flexBasis={1} flexShrink={0}>
 					<Text underline={tab == "launcher"}>[L]auncher</Text>
 					<Text underline={tab == "project"}>[P]roject</Text>
 					<Text underline={tab == "history"}>[H]istory</Text>
