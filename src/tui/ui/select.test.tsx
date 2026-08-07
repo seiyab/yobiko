@@ -1,4 +1,4 @@
-import {  Text } from "ink";
+import { Text } from "ink";
 import { render } from "ink-testing-library";
 import { describe, expect, test, vi } from "vitest";
 import { Select } from "./select.js";
@@ -13,7 +13,7 @@ describe("<Select />", () => {
 			<>
 				<KeyMapListener />
 				<Select items={opts} active onSelect={onSelect} onCursor={onCursor} height={6} />
-			</>
+			</>,
 		);
 		expect(lastFrame()).toEqual(
 			[
