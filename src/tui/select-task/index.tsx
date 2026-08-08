@@ -16,10 +16,7 @@ export function SelectTask({ workspaces, onHoverTask, ...rest }: Props) {
 	const [query, setQuery] = useState("");
 	const list = workspaces.flatMap((w) => {
 		return w.tasks.filter(
-			(t) =>
-				t.name.includes(query) ||
-				t.cwd.includes(query) ||
-				t.command.includes(query),
+			(t) => t.name.includes(query) || t.cwd.includes(query) || t.command.includes(query),
 		);
 	});
 	const queryFocus = useFocus();

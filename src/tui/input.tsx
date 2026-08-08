@@ -1,12 +1,6 @@
 import { counter } from "#app/utils/counter.js";
 import { useInput } from "ink";
-import {
-	AutoFillCredentialField,
-	useEffect,
-	useMemo,
-	useState,
-	useSyncExternalStore,
-} from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { newState } from "./state.js";
 
 type Focus = {
@@ -88,9 +82,7 @@ function newKeyMap() {
 
 			return () => {
 				registrations.update((prev) =>
-					Object.fromEntries(
-						Object.entries(prev).filter(([key]) => key != String(id)),
-					),
+					Object.fromEntries(Object.entries(prev).filter(([key]) => key != String(id))),
 				);
 			};
 		}, [id, keyMap]);
@@ -98,10 +90,7 @@ function newKeyMap() {
 
 	function useFocus(): Focus {
 		const [id] = useState(() => componentIDs.next());
-		const currentFocus = useSyncExternalStore(
-			focus.subscribe,
-			focus.getSnapshot,
-		);
+		const currentFocus = useSyncExternalStore(focus.subscribe, focus.getSnapshot);
 		useEffect(
 			() => () => {
 				const f = focus.getSnapshot();
@@ -128,21 +117,15 @@ function newKeyMap() {
 	}
 
 	function useHelp(): Help {
-		const rs = useSyncExternalStore(
-			registrations.subscribe,
-			registrations.getSnapshot,
-		);
-		const focusID = useFocus().id;
+		const rs = useSyncExternalStore(registrations.subscribe, registrations.getSnapshot);
 		return useMemo(
 			() =>
 				Object.fromEntries(
 					Object.values(rs).flatMap((r) =>
-						Object.entries(r).filter(
-							(e): e is [string, KeyAction] => e[1] !== undefined,
-						),
+						Object.entries(r).filter((e): e is [string, KeyAction] => e[1] !== undefined),
 					),
 				),
-			[rs, focusID],
+			[rs],
 		);
 	}
 }

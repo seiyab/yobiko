@@ -1,6 +1,6 @@
 import { Box, Text, useBoxMetrics } from "ink";
 import { useHelp } from "./input.js";
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import { Pane } from "./ui/pane.js";
 
 export function Help() {
@@ -21,7 +21,7 @@ export function Help() {
 				<Fill />
 				<Box flexDirection="column">
 					{Object.entries(help).map(([key, { description }]) => (
-						<Box>
+						<Box key={key}>
 							<Box flexShrink={0}>
 								<Text>{key}</Text>
 								<Text>{" ".repeat(keyLength - key.length + 1)}: </Text>
@@ -52,9 +52,11 @@ function Fill() {
 			overflow="hidden"
 			flexDirection="column"
 		>
-			{Array.from({ length: m.height }).map((_, i) => (
-				<Text>{" ".repeat(m.width)}</Text>
-			))}
+			<Text>
+				{Array.from({ length: m.height })
+					.map(() => " ".repeat(m.width))
+					.join("\n")}
+			</Text>
 		</Box>
 	);
 }
