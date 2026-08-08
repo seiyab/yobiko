@@ -1,12 +1,12 @@
 {
 	"name": "yobiko",
-	"version": "0.0.0",
+	"version": "0.0.1",
 	"license": "MIT",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/seiyab/yobiko.git"
 	},
-	"bin": "dist/cli.js",
+	"bin": "dist/cli.mjs",
 	"files": [
 		"dist"
 	],
@@ -15,7 +15,7 @@
 		"#app/*": "./dist/*"
 	},
 	"scripts": {
-		"build": "rm -rf dist && tsc",
+		"build": "tsdown ./src/cli.tsx",
 		"check": "oxfmt --check && oxlint && tsc",
 		"check:fix": "oxfmt && oxlint --fix",
 		"test": "vitest --run",
@@ -44,6 +44,7 @@
 		"oxfmt": "^0.58.0",
 		"oxlint": "^1.73.0",
 		"prettier": "^3.6.2",
+		"tsdown": "^0.22.14",
 		"typescript": "~6.0.2",
 		"vitest": "^3.2.7"
 	},
