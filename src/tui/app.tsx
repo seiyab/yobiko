@@ -10,15 +10,19 @@ import Spinner from "ink-spinner";
 import { Launcher } from "./pages/launcher.js";
 import { iife } from "#app/utils/iife.js";
 import { History } from "./pages/history.js";
-import { useKeyMap } from "./input.js";
+import { useFocus, useKeyMap } from "./input.js";
 import { OneShot } from "./pages/one-shot.js";
+import { Help } from "./help.js";
 
 const s = ecq.client(setup([npm, mise, uv]));
 
 export function App() {
 	const ws = useQuery(s.scan("./", { depth: 3 }));
 	const [mode, setMode] = useState<"one-shot" | "dashboard">("one-shot");
-	const [tab, setTab] = useState<"launcher" | "project" | "history">("launcher");
+	const [tab, setTab] = useState<"launcher" | "project" | "history">(
+		"launcher",
+	);
+	const helpFocus = useFocus();
 	const { exit } = useApp();
 	useKeyMap({
 		q: { action: exit, description: "exit from yobiko" },
@@ -43,10 +47,30 @@ export function App() {
 			},
 		},
 	);
+	useKeyMap({
+		"?": {
+			action: () => {
+				if (helpFocus.active) {
+					helpFocus.release();
+				} else {
+					helpFocus.capture();
+				}
+			},
+			description: "toggle help",
+			active: ({ focusID }) => focusID == null || focusID === helpFocus.id,
+		},
+	});
 	return (
 		<Box flexDirection="column" alignItems="stretch" width="100%" height="100%">
 			{mode === "dashboard" && (
-				<Box flexDirection="row" gap={3} height={1} flexGrow={0} flexBasis={1} flexShrink={0}>
+				<Box
+					flexDirection="row"
+					gap={3}
+					height={1}
+					flexGrow={0}
+					flexBasis={1}
+					flexShrink={0}
+				>
 					<Text underline={tab == "launcher"}>[L]auncher</Text>
 					<Text underline={tab == "project"}>[P]roject</Text>
 					<Text underline={tab == "history"}>[H]istory</Text>
@@ -77,6 +101,7 @@ export function App() {
 			<Box flexGrow={0} flexShrink={0}>
 				<Text>Yobiko</Text>
 			</Box>
+			{helpFocus.active && <Help />}
 		</Box>
 	);
 }

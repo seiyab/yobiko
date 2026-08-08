@@ -5,7 +5,7 @@ import { Task, Workspace } from "#app/core/provider.js";
 import { Pane } from "#app/tui/ui/pane.js";
 import { BoxAttributes } from "../ui/box-attributes.js";
 import { Select } from "../ui/select.js";
-import { useFocus, useKeyMap } from "../input.js";
+import { ActiveFunctionParameter, useFocus, useKeyMap } from "../input.js";
 
 type Props = {
 	workspaces: Workspace[];
@@ -16,7 +16,10 @@ export function SelectTask({ workspaces, onHoverTask, ...rest }: Props) {
 	const [query, setQuery] = useState("");
 	const list = workspaces.flatMap((w) => {
 		return w.tasks.filter(
-			(t) => t.name.includes(query) || t.cwd.includes(query) || t.command.includes(query),
+			(t) =>
+				t.name.includes(query) ||
+				t.cwd.includes(query) ||
+				t.command.includes(query),
 		);
 	});
 	const queryFocus = useFocus();
@@ -24,12 +27,12 @@ export function SelectTask({ workspaces, onHoverTask, ...rest }: Props) {
 		"<esc>": {
 			action: queryFocus.release,
 			description: "blur from search query",
-			focus: queryFocus.id,
+			active: queryIsActive,
 		},
 		"<c-[>": {
 			action: queryFocus.release,
 			description: "blur from search query",
-			focus: queryFocus.id,
+			active: queryIsActive,
 		},
 	});
 	useKeyMap({
@@ -37,7 +40,7 @@ export function SelectTask({ workspaces, onHoverTask, ...rest }: Props) {
 		"<c-u>": {
 			action: () => setQuery(""),
 			description: "clear search query",
-			focus: queryFocus.id,
+			active: queryIsActive,
 		},
 	});
 
@@ -71,4 +74,8 @@ export function SelectTask({ workspaces, onHoverTask, ...rest }: Props) {
 			</Box>
 		</Pane>
 	);
+
+	function queryIsActive(p: ActiveFunctionParameter): boolean {
+		return p.focusID === queryFocus.id;
+	}
 }

@@ -1,6 +1,12 @@
 import { counter } from "#app/utils/counter.js";
 import { useInput } from "ink";
-import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import {
+	AutoFillCredentialField,
+	useEffect,
+	useMemo,
+	useState,
+	useSyncExternalStore,
+} from "react";
 import { newState } from "./state.js";
 
 type Focus = {
@@ -13,9 +19,10 @@ type Focus = {
 type KeyAction = {
 	action: () => void;
 	description: string;
-	focus?: FocusID;
+	active?: (state: ActiveFunctionParameter) => boolean;
 };
 type LocalKeyMap = Partial<Record<string, KeyAction>>;
+export type ActiveFunctionParameter = { focusID: FocusID | null };
 
 type ComponentID = number;
 type FocusID = number;
@@ -60,8 +67,8 @@ function newKeyMap() {
 				for (const km of Object.values(keyMap)) {
 					const m = km[bind];
 					if (m == null) continue;
-					// const focusID = focus.getSnapshot();
-					// if (focusID != null && m.focus !== focusID) return;
+					const p = m.active ?? defaultActiveFunction;
+					if (!p({ focusID: focus.getSnapshot() })) return;
 					m?.action();
 				}
 			}
@@ -81,7 +88,9 @@ function newKeyMap() {
 
 			return () => {
 				registrations.update((prev) =>
-					Object.fromEntries(Object.entries(prev).filter(([key]) => key != String(id))),
+					Object.fromEntries(
+						Object.entries(prev).filter(([key]) => key != String(id)),
+					),
 				);
 			};
 		}, [id, keyMap]);
@@ -89,7 +98,19 @@ function newKeyMap() {
 
 	function useFocus(): Focus {
 		const [id] = useState(() => componentIDs.next());
-		const currentFocus = useSyncExternalStore(focus.subscribe, focus.getSnapshot);
+		const currentFocus = useSyncExternalStore(
+			focus.subscribe,
+			focus.getSnapshot,
+		);
+		useEffect(
+			() => () => {
+				const f = focus.getSnapshot();
+				if (f === id) {
+					focus.update(() => null);
+				}
+			},
+			[id],
+		);
 
 		return useMemo(
 			() => ({
@@ -107,17 +128,27 @@ function newKeyMap() {
 	}
 
 	function useHelp(): Help {
-		const rs = useSyncExternalStore(registrations.subscribe, registrations.getSnapshot);
+		const rs = useSyncExternalStore(
+			registrations.subscribe,
+			registrations.getSnapshot,
+		);
+		const focusID = useFocus().id;
 		return useMemo(
 			() =>
 				Object.fromEntries(
 					Object.values(rs).flatMap((r) =>
-						Object.entries(r).filter((e): e is [string, KeyAction] => e[1] !== undefined),
+						Object.entries(r).filter(
+							(e): e is [string, KeyAction] => e[1] !== undefined,
+						),
 					),
 				),
-			[rs],
+			[rs, focusID],
 		);
 	}
 }
 
 export const { KeyMapListener, useKeyMap, useFocus, useHelp } = newKeyMap();
+
+function defaultActiveFunction({ focusID }: ActiveFunctionParameter): boolean {
+	return focusID == null;
+}

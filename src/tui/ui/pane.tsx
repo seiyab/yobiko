@@ -16,7 +16,13 @@ export function Pane({ name, children, ...rest }: Props) {
 			flexDirection="column"
 			{...rest}
 		>
-			<Box marginTop={-1} marginLeft={2} flexGrow={0} flexShrink={0} position="absolute">
+			<Box
+				marginTop={-1}
+				marginLeft={2}
+				flexGrow={0}
+				flexShrink={0}
+				position="absolute"
+			>
 				{iife(() => {
 					switch (typeof name) {
 						case "string":
