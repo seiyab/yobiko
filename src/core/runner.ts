@@ -13,6 +13,7 @@ type Run = {
 	status: RunStatus;
 	createdAt: Date;
 	output: RunOutput;
+	kill: () => void;
 };
 
 export type RunStatus = "running" | "failed" | "succeeded";
@@ -50,6 +51,7 @@ function newRunner(): { spawn: Spawn; state: RunStore } {
 				return {
 					...run,
 					status: code === 0 ? "succeeded" : "failed",
+					kill: () => 0,
 				};
 			});
 			emit();
@@ -62,6 +64,7 @@ function newRunner(): { spawn: Spawn; state: RunStore } {
 				status: "running",
 				createdAt: new Date(),
 				output: output.state,
+				kill: p.kill.bind(p),
 			},
 		]);
 		emit();

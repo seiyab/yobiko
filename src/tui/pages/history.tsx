@@ -4,11 +4,30 @@ import { useState, useSyncExternalStore } from "react";
 import { Pane } from "../ui/pane.js";
 import { Select } from "../ui/select.js";
 import { TaskStatusIndicator } from "../task-status-indicator.js";
+import { useKeyMap } from "../input.js";
 
 export function History() {
 	const runs = useSyncExternalStore(runner.state.subscribe, runner.state.getSnapshot);
 	const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
 	const selectedRun = runs.find((run) => run.id === selectedRunId);
+	useKeyMap({
+		r: {
+			action: () => {
+				const run = runs.find((r) => r.id === selectedRunId);
+				if (run == null) return;
+				void runner.spawn(run.task);
+			},
+			description: "rerun the task",
+		},
+		x: {
+			action: () => {
+				const run = runs.find((r) => r.id === selectedRunId);
+				if (run == null) return;
+				void run.kill();
+			},
+			description: "kill the task",
+		},
+	});
 	return (
 		<Box flexDirection="row" flexGrow={1}>
 			<Pane name="Runs" flexGrow={2} flexBasis={0}>
