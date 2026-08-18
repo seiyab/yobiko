@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use color_eyre::Result;
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
@@ -6,7 +6,7 @@ use ratatui::{
     DefaultTerminal, Frame,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style, Stylize},
-    text::{Line, Text},
+    text::{Line, Span, Text},
     widgets::{Block, Borders, Clear, List, ListItem, ListState, Paragraph, Tabs, Wrap},
 };
 
@@ -325,14 +325,7 @@ impl App {
             .runs
             .iter()
             .rev()
-            .map(|run| {
-                ListItem::new(format!(
-                    "{} ({}) {}",
-                    indicator(run.status),
-                    run.task.cwd.display(),
-                    run.task.command_line()
-                ))
-            })
+            .map(|run| ListItem::new(run_line(run.status, &run.task)))
             .collect::<Vec<_>>();
         frame.render_widget(
             List::new(items).block(Block::bordered().title(" Runs ")),
@@ -348,14 +341,7 @@ impl App {
             .runs
             .iter()
             .rev()
-            .map(|run| {
-                ListItem::new(format!(
-                    "{} ({}) {}",
-                    indicator(run.status),
-                    run.task.cwd.display(),
-                    run.task.command_line()
-                ))
-            })
+            .map(|run| ListItem::new(run_line(run.status, &run.task)))
             .collect::<Vec<_>>();
         let mut state = ListState::default().with_selected(
             (!items.is_empty()).then_some(self.history_selected.min(items.len().saturating_sub(1))),
@@ -430,12 +416,31 @@ impl App {
     }
 }
 
-fn indicator(status: RunStatus) -> &'static str {
+const DOTS_INTERVAL: Duration = Duration::from_millis(80);
+const DOTS_FRAMES: [&str; 10] = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+
+fn run_line(status: RunStatus, task: &Task) -> Line<'static> {
+    Line::from(vec![
+        indicator(status),
+        format!(" ({}) {}", task.cwd.display(), task.command_line()).into(),
+    ])
+}
+
+fn indicator(status: RunStatus) -> Span<'static> {
     match status {
-        RunStatus::Running => "●",
-        RunStatus::Succeeded => "o",
-        RunStatus::Failed => "!",
+        RunStatus::Running => dots_frame(
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap_or_default(),
+        )
+        .blue(),
+        RunStatus::Succeeded => "o".green(),
+        RunStatus::Failed => "!".red(),
     }
+}
+
+fn dots_frame(elapsed: Duration) -> &'static str {
+    DOTS_FRAMES[(elapsed.as_millis() / DOTS_INTERVAL.as_millis()) as usize % DOTS_FRAMES.len()]
 }
 
 fn centered(area: Rect, width: u16, height: u16) -> Rect {
@@ -457,4 +462,20 @@ fn centered(area: Rect, width: u16, height: u16) -> Rect {
         ],
     )
     .split(vertical[1])[1]
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn dots_spinner_uses_cli_spinners_frames_and_interval() {
+        for (index, frame) in DOTS_FRAMES.iter().enumerate() {
+            assert_eq!(dots_frame(DOTS_INTERVAL * index as u32), *frame);
+        }
+        assert_eq!(
+            dots_frame(DOTS_INTERVAL * DOTS_FRAMES.len() as u32),
+            DOTS_FRAMES[0]
+        );
+    }
 }
