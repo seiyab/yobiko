@@ -294,9 +294,9 @@ impl App {
             .map(|task| {
                 ListItem::new(Line::from(vec![
                     format!("({})", relative_dir(&self.root, &task.cwd).display()).dark_gray(),
-					" ".into(),
+                    " ".into(),
                     task.command_line().into(),
-				]))
+                ]))
             })
             .collect::<Vec<_>>();
         let mut state = ListState::default().with_selected(
@@ -306,7 +306,7 @@ impl App {
             List::new(items)
                 .highlight_symbol("> ")
                 .highlight_style(Style::new().add_modifier(Modifier::BOLD))
-				.scroll_padding(2),
+                .scroll_padding(2),
             rows[1],
             &mut state,
         );
