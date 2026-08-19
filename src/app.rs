@@ -1,4 +1,7 @@
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::{
+    path::{Path, PathBuf},
+    time::{Duration, SystemTime, UNIX_EPOCH},
+};
 
 use color_eyre::Result;
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
@@ -29,6 +32,7 @@ enum Tab {
 }
 
 pub struct App {
+    root: PathBuf,
     workspaces: Vec<Workspace>,
     tasks: Vec<Task>,
     runner: Runner,
@@ -45,12 +49,13 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(workspaces: Vec<Workspace>) -> Self {
+    pub fn new(root: PathBuf, workspaces: Vec<Workspace>) -> Self {
         let tasks = workspaces
             .iter()
             .flat_map(|workspace| workspace.tasks.clone())
             .collect();
         Self {
+            root,
             workspaces,
             tasks,
             runner: Runner::default(),
@@ -286,7 +291,13 @@ impl App {
         let tasks = self.filtered_tasks();
         let items = tasks
             .iter()
-            .map(|task| ListItem::new(format!("({}) {}", task.cwd.display(), task.command_line())))
+            .map(|task| {
+                ListItem::new(format!(
+                    "({}) {}",
+                    relative_dir(&self.root, &task.cwd).display(),
+                    task.command_line()
+                ))
+            })
             .collect::<Vec<_>>();
         let mut state = ListState::default().with_selected(
             (!items.is_empty()).then_some(self.selected.min(items.len().saturating_sub(1))),
@@ -304,7 +315,7 @@ impl App {
         let text = self.selected_task().map_or_else(String::new, |task| {
             format!(
                 "directory: {}\nname: {}\ncommand: {}{}",
-                task.cwd.display(),
+                relative_dir(&self.root, &task.cwd).display(),
                 task.name,
                 task.command_line(),
                 task.content
@@ -325,7 +336,7 @@ impl App {
             .runs
             .iter()
             .rev()
-            .map(|run| ListItem::new(run_line(run.status, &run.task)))
+            .map(|run| ListItem::new(run_line(run.status, &run.task, &self.root)))
             .collect::<Vec<_>>();
         frame.render_widget(
             List::new(items).block(Block::bordered().title(" Runs ")),
@@ -341,7 +352,7 @@ impl App {
             .runs
             .iter()
             .rev()
-            .map(|run| ListItem::new(run_line(run.status, &run.task)))
+            .map(|run| ListItem::new(run_line(run.status, &run.task, &self.root)))
             .collect::<Vec<_>>();
         let mut state = ListState::default().with_selected(
             (!items.is_empty()).then_some(self.history_selected.min(items.len().saturating_sub(1))),
@@ -374,7 +385,7 @@ impl App {
             .map(|w| {
                 ListItem::new(format!(
                     "{} ({}, {} tasks)",
-                    w.dir.display(),
+                    relative_dir(&self.root, &w.dir).display(),
                     w.provider,
                     w.tasks.len()
                 ))
@@ -419,11 +430,23 @@ impl App {
 const DOTS_INTERVAL: Duration = Duration::from_millis(80);
 const DOTS_FRAMES: [&str; 10] = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
-fn run_line(status: RunStatus, task: &Task) -> Line<'static> {
+fn run_line(status: RunStatus, task: &Task, root: &Path) -> Line<'static> {
     Line::from(vec![
         indicator(status),
-        format!(" ({}) {}", task.cwd.display(), task.command_line()).into(),
+        format!(
+            " ({}) {}",
+            relative_dir(root, &task.cwd).display(),
+            task.command_line()
+        )
+        .into(),
     ])
+}
+
+fn relative_dir<'a>(root: &Path, dir: &'a Path) -> &'a Path {
+    dir.strip_prefix(root)
+        .ok()
+        .filter(|path| !path.as_os_str().is_empty())
+        .unwrap_or_else(|| if dir == root { Path::new(".") } else { dir })
 }
 
 fn indicator(status: RunStatus) -> Span<'static> {
@@ -476,6 +499,19 @@ mod tests {
         assert_eq!(
             dots_frame(DOTS_INTERVAL * DOTS_FRAMES.len() as u32),
             DOTS_FRAMES[0]
+        );
+    }
+
+    #[test]
+    fn displayed_directory_is_relative_to_scan_root() {
+        let root = Path::new("/projects/example");
+        assert_eq!(
+            relative_dir(root, Path::new("/projects/example")),
+            Path::new(".")
+        );
+        assert_eq!(
+            relative_dir(root, Path::new("/projects/example/crates/app")),
+            Path::new("crates/app")
         );
     }
 }

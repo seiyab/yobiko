@@ -8,8 +8,9 @@ use std::process::{Command, ExitCode};
 
 fn main() -> color_eyre::Result<ExitCode> {
     color_eyre::install()?;
-    let workspaces = scan::scan(std::env::current_dir()?, 3);
-    let selected = ratatui::run(|terminal| app::App::new(workspaces).run(terminal))?;
+    let root = std::env::current_dir()?;
+    let workspaces = scan::scan(root.clone(), 3);
+    let selected = ratatui::run(|terminal| app::App::new(root, workspaces).run(terminal))?;
 
     let Some(task) = selected else {
         return Ok(ExitCode::SUCCESS);
