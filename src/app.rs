@@ -5,15 +5,14 @@ use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifier
 use ratatui::{
     DefaultTerminal, Frame,
     layout::{Constraint, Layout, Rect},
-    style::{Color, Modifier, Style, Stylize},
-    text::Line,
-    widgets::{Block, Borders, List, ListItem, ListState, Paragraph, Tabs, Wrap},
+    style::Modifier,
+    widgets::{Block, List, ListItem, ListState, Paragraph, Tabs, Wrap},
 };
 
 use crate::{
     model::{Task, Workspace},
     runner::Runner,
-    tui::components::{relative_dir, render_help, render_task_detail, run_line},
+    tui::components::{TaskPicker, relative_dir, render_help, render_task_detail, run_line},
 };
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -36,10 +35,8 @@ pub struct App {
     runner: Runner,
     mode: Mode,
     tab: Tab,
-    selected: usize,
+    task_picker: TaskPicker,
     history_selected: usize,
-    query: String,
-    searching: bool,
     help: bool,
     exit: bool,
     one_shot: Option<Task>,
@@ -59,10 +56,8 @@ impl App {
             runner: Runner::default(),
             mode: Mode::OneShot,
             tab: Tab::Launcher,
-            selected: 0,
+            task_picker: TaskPicker::default(),
             history_selected: 0,
-            query: String::new(),
-            searching: false,
             help: false,
             exit: false,
             one_shot: None,
@@ -91,23 +86,9 @@ impl App {
             }
             return;
         }
-        if self.searching {
-            match key.code {
-                KeyCode::Esc | KeyCode::Enter => self.searching = false,
-                KeyCode::Backspace => {
-                    self.query.pop();
-                    self.selected = 0;
-                }
-                KeyCode::Char('u') if key.modifiers.contains(KeyModifiers::CONTROL) => {
-                    self.query.clear();
-                    self.selected = 0;
-                }
-                KeyCode::Char(c) if !key.modifiers.contains(KeyModifiers::CONTROL) => {
-                    self.query.push(c);
-                    self.selected = 0;
-                }
-                _ => {}
-            }
+        let task_picker_active = self.mode == Mode::OneShot || self.tab == Tab::Launcher;
+        if task_picker_active && self.task_picker.is_searching() {
+            self.task_picker.handle_key(key, &self.tasks);
             return;
         }
         match key.code {
@@ -121,56 +102,36 @@ impl App {
             KeyCode::Char('L') if self.mode == Mode::Dashboard => self.tab = Tab::Launcher,
             KeyCode::Char('P') if self.mode == Mode::Dashboard => self.tab = Tab::Project,
             KeyCode::Char('H') if self.mode == Mode::Dashboard => self.tab = Tab::History,
-            KeyCode::Char('/') if self.tab == Tab::Launcher || self.mode == Mode::OneShot => {
-                self.searching = true
+            _ if task_picker_active => {
+                if let Some(task) = self.task_picker.handle_key(key, &self.tasks) {
+                    self.launch(task);
+                }
             }
-            KeyCode::Char('j') | KeyCode::Down => self.move_down(),
-            KeyCode::Char('n') if key.modifiers.contains(KeyModifiers::CONTROL) => self.move_down(),
-            KeyCode::Char('k') | KeyCode::Up => self.move_up(),
-            KeyCode::Enter => self.launch_selected(),
+            KeyCode::Char('j') | KeyCode::Down => self.move_history_down(),
+            KeyCode::Char('n') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                self.move_history_down()
+            }
+            KeyCode::Char('k') | KeyCode::Up => self.move_history_up(),
             KeyCode::Char('r') if self.tab == Tab::History => self.rerun_selected(),
             KeyCode::Char('x') if self.tab == Tab::History => self.kill_selected(),
             _ => {}
         }
     }
 
-    fn move_down(&mut self) {
-        if self.mode == Mode::Dashboard && self.tab == Tab::History {
-            self.history_selected =
-                (self.history_selected + 1).min(self.runner.runs.len().saturating_sub(1));
-        } else {
-            self.selected = (self.selected + 1).min(self.filtered_tasks().len().saturating_sub(1));
-        }
+    fn move_history_down(&mut self) {
+        self.history_selected =
+            (self.history_selected + 1).min(self.runner.runs.len().saturating_sub(1));
     }
 
-    fn move_up(&mut self) {
-        if self.mode == Mode::Dashboard && self.tab == Tab::History {
-            self.history_selected = self.history_selected.saturating_sub(1);
-        } else {
-            self.selected = self.selected.saturating_sub(1);
-        }
+    fn move_history_up(&mut self) {
+        self.history_selected = self.history_selected.saturating_sub(1);
     }
 
     fn selected_task(&self) -> Option<Task> {
-        self.filtered_tasks().get(self.selected).copied().cloned()
+        self.task_picker.selected_task(&self.tasks).cloned()
     }
 
-    fn filtered_tasks(&self) -> Vec<&Task> {
-        self.tasks
-            .iter()
-            .filter(|task| {
-                self.query.is_empty()
-                    || task.name.contains(&self.query)
-                    || task.cwd.to_string_lossy().contains(&self.query)
-                    || task.command.contains(&self.query)
-            })
-            .collect()
-    }
-
-    fn launch_selected(&mut self) {
-        let Some(task) = self.selected_task() else {
-            return;
-        };
+    fn launch(&mut self, task: Task) {
         if self.mode == Mode::OneShot {
             self.one_shot = Some(task);
             self.exit = true;
@@ -205,7 +166,7 @@ impl App {
         }
     }
 
-    fn draw(&self, frame: &mut Frame) {
+    fn draw(&mut self, frame: &mut Frame) {
         let area = frame.area();
         let rows = if self.mode == Mode::Dashboard {
             vec![
@@ -253,7 +214,7 @@ impl App {
         }
     }
 
-    fn draw_launcher(&self, frame: &mut Frame, area: Rect) {
+    fn draw_launcher(&mut self, frame: &mut Frame, area: Rect) {
         let rows =
             Layout::vertical([Constraint::Percentage(70), Constraint::Percentage(30)]).split(area);
         let columns = Layout::horizontal([
@@ -265,49 +226,12 @@ impl App {
             }),
         ])
         .split(rows[1]);
-        self.draw_tasks(frame, rows[0]);
+        self.task_picker
+            .render(frame, rows[0], &self.root, &self.tasks);
         if self.mode == Mode::Dashboard {
             self.draw_runs(frame, columns[0]);
         }
         self.draw_detail(frame, columns[1]);
-    }
-
-    fn draw_tasks(&self, frame: &mut Frame, area: Rect) {
-        let block = Block::bordered().title(" Select Task ");
-        let inner = block.inner(area);
-        frame.render_widget(block, area);
-        let rows = Layout::vertical([Constraint::Length(2), Constraint::Min(1)]).split(inner);
-        let cursor = if self.searching { "_" } else { "" };
-        frame.render_widget(
-            Paragraph::new(format!("Filter[/]: {}{cursor}", self.query)).block(
-                Block::new()
-                    .borders(Borders::BOTTOM)
-                    .border_style(Color::DarkGray),
-            ),
-            rows[0],
-        );
-        let tasks = self.filtered_tasks();
-        let items = tasks
-            .iter()
-            .map(|task| {
-                ListItem::new(Line::from(vec![
-                    format!("({})", relative_dir(&self.root, &task.cwd).display()).dark_gray(),
-                    " ".into(),
-                    task.command_line().into(),
-                ]))
-            })
-            .collect::<Vec<_>>();
-        let mut state = ListState::default().with_selected(
-            (!items.is_empty()).then_some(self.selected.min(items.len().saturating_sub(1))),
-        );
-        frame.render_stateful_widget(
-            List::new(items)
-                .highlight_symbol("> ")
-                .highlight_style(Style::new().add_modifier(Modifier::BOLD))
-                .scroll_padding(2),
-            rows[1],
-            &mut state,
-        );
     }
 
     fn draw_detail(&self, frame: &mut Frame, area: Rect) {
