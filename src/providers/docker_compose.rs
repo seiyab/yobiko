@@ -11,7 +11,7 @@ const COMPOSE_FILES: [&str; 4] = [
 
 const TASKS: [(&str, &[&str]); 7] = [
     ("up", &["up"]),
-    ("up-detached", &["up", "-d"]),
+    ("up-detached", &["up", "--wait"]),
     ("down", &["down"]),
     ("build", &["build"]),
     ("pull", &["pull"]),
@@ -88,7 +88,7 @@ mod tests {
                 .collect::<Vec<_>>(),
             [
                 "docker compose up",
-                "docker compose up -d",
+                "docker compose up --wait",
                 "docker compose down",
                 "docker compose build",
                 "docker compose pull",
