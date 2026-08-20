@@ -4,29 +4,22 @@ use color_eyre::Result;
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use ratatui::{
     DefaultTerminal, Frame,
-    layout::{Constraint, Layout, Rect},
-    style::Modifier,
-    widgets::{Block, List, ListItem, Paragraph, Tabs},
+    layout::{Constraint, Layout},
+    widgets::Paragraph,
 };
 
 use crate::{
     model::{Task, Workspace},
     runner::Runner,
-    tui::components::{TaskPicker, relative_dir, render_help, render_task_detail, run_line},
-    tui::screens::{History, HistoryEvent},
+    tui::{
+        components::render_help,
+        screens::{Dashboard, DashboardEvent, OneShot},
+    },
 };
 
-#[derive(Clone, Copy, PartialEq, Eq)]
-enum Mode {
-    OneShot,
-    Dashboard,
-}
-
-#[derive(Clone, Copy, PartialEq, Eq)]
-enum Tab {
-    Launcher,
-    Project,
-    History,
+enum Screen {
+    OneShot(OneShot),
+    Dashboard(Dashboard),
 }
 
 pub struct App {
@@ -34,10 +27,7 @@ pub struct App {
     workspaces: Vec<Workspace>,
     tasks: Vec<Task>,
     runner: Runner,
-    mode: Mode,
-    tab: Tab,
-    task_picker: TaskPicker,
-    history: History,
+    screen: Screen,
     help: bool,
     exit: bool,
     one_shot: Option<Task>,
@@ -55,10 +45,7 @@ impl App {
             workspaces,
             tasks,
             runner: Runner::default(),
-            mode: Mode::OneShot,
-            tab: Tab::Launcher,
-            task_picker: TaskPicker::default(),
-            history: History::default(),
+            screen: Screen::OneShot(OneShot::default()),
             help: false,
             exit: false,
             one_shot: None,
@@ -87,48 +74,45 @@ impl App {
             }
             return;
         }
-        let task_picker_active = self.mode == Mode::OneShot || self.tab == Tab::Launcher;
-        if task_picker_active && self.task_picker.is_searching() {
-            self.task_picker.handle_key(key, &self.tasks);
+        if self.screen_captures_input() {
+            self.handle_screen_key(key);
             return;
         }
         match key.code {
             KeyCode::Char('q') => self.exit = true,
             KeyCode::Char('?') => self.help = true,
             KeyCode::Char('d')
-                if key.modifiers.contains(KeyModifiers::CONTROL) && self.mode == Mode::OneShot =>
+                if key.modifiers.contains(KeyModifiers::CONTROL)
+                    && matches!(self.screen, Screen::OneShot(_)) =>
             {
-                self.mode = Mode::Dashboard
+                self.screen = Screen::Dashboard(Dashboard::default());
             }
-            KeyCode::Char('L') if self.mode == Mode::Dashboard => self.tab = Tab::Launcher,
-            KeyCode::Char('P') if self.mode == Mode::Dashboard => self.tab = Tab::Project,
-            KeyCode::Char('H') if self.mode == Mode::Dashboard => self.tab = Tab::History,
-            _ if task_picker_active => {
-                if let Some(task) = self.task_picker.handle_key(key, &self.tasks) {
-                    self.launch(task);
-                }
-            }
-            _ if self.mode == Mode::Dashboard && self.tab == Tab::History => {
-                match self.history.handle_key(key, &self.runner) {
-                    Some(HistoryEvent::Rerun(task)) => self.spawn(task),
-                    Some(HistoryEvent::Kill(index)) => self.runner.kill(index),
-                    None => {}
-                }
-            }
-            _ => {}
+            _ => self.handle_screen_key(key),
         }
     }
 
-    fn selected_task(&self) -> Option<Task> {
-        self.task_picker.selected_task(&self.tasks).cloned()
+    fn screen_captures_input(&self) -> bool {
+        match &self.screen {
+            Screen::OneShot(screen) => screen.captures_input(),
+            Screen::Dashboard(screen) => screen.captures_input(),
+        }
     }
 
-    fn launch(&mut self, task: Task) {
-        if self.mode == Mode::OneShot {
-            self.one_shot = Some(task);
-            self.exit = true;
-        } else if self.tab == Tab::Launcher {
-            self.spawn(task);
+    fn handle_screen_key(&mut self, key: KeyEvent) {
+        let event = match &mut self.screen {
+            Screen::OneShot(screen) => {
+                if let Some(task) = screen.handle_key(key, &self.tasks) {
+                    self.one_shot = Some(task);
+                    self.exit = true;
+                }
+                return;
+            }
+            Screen::Dashboard(screen) => screen.handle_key(key, &self.tasks, &self.runner),
+        };
+        match event {
+            Some(DashboardEvent::Run(task) | DashboardEvent::Rerun(task)) => self.spawn(task),
+            Some(DashboardEvent::Kill(index)) => self.runner.kill(index),
+            None => {}
         }
     }
 
@@ -140,108 +124,25 @@ impl App {
 
     fn draw(&mut self, frame: &mut Frame) {
         let area = frame.area();
-        let rows = if self.mode == Mode::Dashboard {
-            vec![
-                Constraint::Length(1),
-                Constraint::Min(1),
-                Constraint::Length(1),
-            ]
-        } else {
-            vec![Constraint::Min(1), Constraint::Length(1)]
-        };
-        let chunks = Layout::vertical(rows).split(area);
-        let body = if self.mode == Mode::Dashboard {
-            let titles = ["[L]auncher", "[P]roject", "[H]istory"];
-            let selected = match self.tab {
-                Tab::Launcher => 0,
-                Tab::Project => 1,
-                Tab::History => 2,
-            };
-            frame.render_widget(
-                Tabs::new(titles)
-                    .select(selected)
-                    .divider("   ")
-                    .highlight_style(Modifier::UNDERLINED),
-                chunks[0],
-            );
-            chunks[1]
-        } else {
-            chunks[0]
-        };
-        match (self.mode, self.tab) {
-            (Mode::OneShot, _) | (Mode::Dashboard, Tab::Launcher) => {
-                self.draw_launcher(frame, body)
-            }
-            (Mode::Dashboard, Tab::Project) => self.draw_projects(frame, body),
-            (Mode::Dashboard, Tab::History) => {
-                self.history.render(frame, body, &self.root, &self.runner)
-            }
+        let rows = Layout::vertical([Constraint::Min(1), Constraint::Length(1)]).split(area);
+        match &mut self.screen {
+            Screen::OneShot(screen) => screen.render(frame, rows[0], &self.root, &self.tasks),
+            Screen::Dashboard(screen) => screen.render(
+                frame,
+                rows[0],
+                &self.root,
+                &self.workspaces,
+                &self.tasks,
+                &self.runner,
+            ),
         }
-        let footer = *chunks.last().expect("layout has a footer");
-        let status = self
-            .error
-            .as_deref()
-            .map_or_else(|| "Yobiko  [?] help".into(), |e| format!("Error: {e}"));
-        frame.render_widget(Paragraph::new(status), footer);
+        let status = self.error.as_deref().map_or_else(
+            || "Yobiko  [?] help".into(),
+            |error| format!("Error: {error}"),
+        );
+        frame.render_widget(Paragraph::new(status), rows[1]);
         if self.help {
             render_help(frame, area);
         }
-    }
-
-    fn draw_launcher(&mut self, frame: &mut Frame, area: Rect) {
-        let rows =
-            Layout::vertical([Constraint::Percentage(70), Constraint::Percentage(30)]).split(area);
-        let columns = Layout::horizontal([
-            Constraint::Percentage(if self.mode == Mode::Dashboard { 50 } else { 0 }),
-            Constraint::Percentage(if self.mode == Mode::Dashboard {
-                50
-            } else {
-                100
-            }),
-        ])
-        .split(rows[1]);
-        self.task_picker
-            .render(frame, rows[0], &self.root, &self.tasks);
-        if self.mode == Mode::Dashboard {
-            self.draw_runs(frame, columns[0]);
-        }
-        self.draw_detail(frame, columns[1]);
-    }
-
-    fn draw_detail(&self, frame: &mut Frame, area: Rect) {
-        render_task_detail(frame, area, &self.root, self.selected_task().as_ref());
-    }
-
-    fn draw_runs(&self, frame: &mut Frame, area: Rect) {
-        let items = self
-            .runner
-            .runs
-            .iter()
-            .rev()
-            .map(|run| ListItem::new(run_line(run.status, &run.task, &self.root)))
-            .collect::<Vec<_>>();
-        frame.render_widget(
-            List::new(items).block(Block::bordered().title(" Runs ")),
-            area,
-        );
-    }
-
-    fn draw_projects(&self, frame: &mut Frame, area: Rect) {
-        let items = self
-            .workspaces
-            .iter()
-            .map(|w| {
-                ListItem::new(format!(
-                    "{} ({}, {} tasks)",
-                    relative_dir(&self.root, &w.dir).display(),
-                    w.provider,
-                    w.tasks.len()
-                ))
-            })
-            .collect::<Vec<_>>();
-        frame.render_widget(
-            List::new(items).block(Block::bordered().title(" Projects ")),
-            area,
-        );
     }
 }
