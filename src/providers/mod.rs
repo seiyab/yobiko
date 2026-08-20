@@ -4,13 +4,23 @@ mod go;
 mod mise;
 mod npm;
 mod uv;
+mod yobiko;
 
 use std::path::Path;
 
-use crate::model::Workspace;
+use crate::model::{Diagnostic, Workspace};
 
-pub fn discover(path: &Path) -> Vec<Workspace> {
-    [
+pub fn discover(path: &Path) -> (Vec<Workspace>, Vec<Diagnostic>) {
+    let mut diagnostics = Vec::new();
+    let yobiko = match yobiko::workspace(path) {
+        Ok(workspace) => workspace,
+        Err(diagnostic) => {
+            diagnostics.push(diagnostic);
+            None
+        }
+    };
+    let workspaces = [
+        yobiko,
         cargo::workspace(path),
         docker_compose::workspace(path),
         go::workspace(path),
@@ -20,7 +30,8 @@ pub fn discover(path: &Path) -> Vec<Workspace> {
     ]
     .into_iter()
     .flatten()
-    .collect()
+    .collect();
+    (workspaces, diagnostics)
 }
 
 #[cfg(test)]
@@ -46,6 +57,7 @@ mod tests {
         fs::write(path.join("package.json"), r#"{"scripts":{"test":"ok"}}"#).unwrap();
 
         let providers = discover(&path)
+            .0
             .into_iter()
             .map(|workspace| workspace.provider)
             .collect::<Vec<_>>();

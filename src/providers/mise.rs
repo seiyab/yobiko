@@ -11,6 +11,7 @@ pub fn workspace(path: &Path) -> Option<Workspace> {
         .iter()
         .map(|(name, definition)| Task {
             name: name.clone(),
+            provider: "mise",
             cwd: path.to_path_buf(),
             command: "mise".into(),
             args: vec!["run".into(), name.clone()],

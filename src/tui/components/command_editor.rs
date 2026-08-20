@@ -158,6 +158,7 @@ mod tests {
         CommandEditor::new(
             Task {
                 name: "test".into(),
+                provider: "test",
                 cwd: PathBuf::new(),
                 command: "yarn".into(),
                 args: vec!["run".into(), "test".into()],

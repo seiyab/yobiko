@@ -30,6 +30,7 @@ pub fn workspace(path: &Path) -> Option<Workspace> {
                 .iter()
                 .map(|(name, args)| Task {
                     name: (*name).into(),
+                    provider: "docker-compose",
                     cwd: path.to_path_buf(),
                     command: "docker".into(),
                     args: std::iter::once("compose".into())

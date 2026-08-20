@@ -3,6 +3,7 @@ use std::path::PathBuf;
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Task {
     pub name: String,
+    pub provider: &'static str,
     pub cwd: PathBuf,
     pub command: String,
     pub args: Vec<String>,
@@ -43,6 +44,7 @@ mod tests {
     fn task(command: &str, args: &[&str]) -> Task {
         Task {
             name: "example".into(),
+            provider: "test",
             cwd: PathBuf::new(),
             command: command.into(),
             args: args.iter().map(|arg| (*arg).into()).collect(),
@@ -74,4 +76,10 @@ pub struct Workspace {
     pub dir: PathBuf,
     pub provider: &'static str,
     pub tasks: Vec<Task>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Diagnostic {
+    pub path: PathBuf,
+    pub message: String,
 }

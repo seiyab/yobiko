@@ -9,7 +9,7 @@ use ratatui::{
 };
 
 use crate::{
-    model::{Task, Workspace},
+    model::{Diagnostic, Task, Workspace},
     runner::Runner,
     tui::{
         Action,
@@ -26,6 +26,7 @@ enum Screen {
 pub struct App {
     root: PathBuf,
     workspaces: Vec<Workspace>,
+    diagnostics: Vec<Diagnostic>,
     tasks: Vec<Task>,
     runner: Runner,
     screen: Screen,
@@ -37,7 +38,7 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(root: PathBuf, workspaces: Vec<Workspace>) -> Self {
+    pub fn new(root: PathBuf, workspaces: Vec<Workspace>, diagnostics: Vec<Diagnostic>) -> Self {
         let tasks = workspaces
             .iter()
             .flat_map(|workspace| workspace.tasks.clone())
@@ -45,6 +46,7 @@ impl App {
         Self {
             root,
             workspaces,
+            diagnostics,
             tasks,
             runner: Runner::default(),
             screen: Screen::OneShot(OneShot::default()),
@@ -125,7 +127,9 @@ impl App {
         match action {
             Action::Quit => self.exit = true,
             Action::ToggleHelp => self.help = !self.help,
-            Action::OpenDashboard => self.screen = Screen::Dashboard(Dashboard::default()),
+            Action::OpenDashboard => {
+                self.screen = Screen::Dashboard(Dashboard::new(self.diagnostics.clone()))
+            }
             Action::Run(task) => self.spawn(task),
             Action::SelectOneShot(task) => {
                 self.one_shot = Some(task);
@@ -176,9 +180,14 @@ impl App {
                 &self.runner,
             ),
         }
+        let diagnostic_status = match self.diagnostics.len() {
+            0 => String::new(),
+            1 => "  1 configuration error".into(),
+            count => format!("  {count} configuration errors"),
+        };
         let status = self.error.as_deref().map_or_else(
-            || "Yobiko  [?] help".into(),
-            |error| format!("Error: {error}"),
+            || format!("Yobiko  [?] help{diagnostic_status}"),
+            |error| format!("Error: {error}{diagnostic_status}"),
         );
         frame.render_widget(Paragraph::new(status), rows[1]);
         if self.help {
