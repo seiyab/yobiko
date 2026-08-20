@@ -11,14 +11,11 @@ use ratatui::{
 use crate::{
     model::{Task, Workspace},
     runner::Runner,
-    tui::screens::{history::History, launcher::Launcher, projects::Projects},
+    tui::{
+        Action,
+        screens::{history::History, launcher::Launcher, projects::Projects},
+    },
 };
-
-pub(crate) enum DashboardEvent {
-    Run(Task),
-    Rerun(Task),
-    Kill(usize),
-}
 
 #[derive(Clone, Copy, Default, PartialEq, Eq)]
 enum Tab {
@@ -46,29 +43,16 @@ impl Dashboard {
         key: KeyEvent,
         tasks: &[Task],
         runner: &Runner,
-    ) -> Option<DashboardEvent> {
+    ) -> Option<Action> {
         match key.code {
             KeyCode::Char('L') => self.tab = Tab::Launcher,
             KeyCode::Char('P') => self.tab = Tab::Projects,
             KeyCode::Char('H') => self.tab = Tab::History,
             _ => {
                 return match self.tab {
-                    Tab::Launcher => self
-                        .launcher
-                        .handle_key(key, tasks)
-                        .map(DashboardEvent::Run),
+                    Tab::Launcher => self.launcher.handle_key(key, tasks).map(Action::Run),
                     Tab::Projects => None,
-                    Tab::History => self
-                        .history
-                        .handle_key(key, runner)
-                        .map(|event| match event {
-                            super::history::HistoryEvent::Rerun(task) => {
-                                DashboardEvent::Rerun(task)
-                            }
-                            super::history::HistoryEvent::Kill(index) => {
-                                DashboardEvent::Kill(index)
-                            }
-                        }),
+                    Tab::History => self.history.handle_key(key, runner),
                 };
             }
         }

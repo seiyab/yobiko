@@ -8,12 +8,10 @@ use ratatui::{
     widgets::{Block, List, ListItem, ListState, Paragraph, Wrap},
 };
 
-use crate::{model::Task, runner::Runner, tui::components::run_line};
-
-pub(crate) enum HistoryEvent {
-    Rerun(Task),
-    Kill(usize),
-}
+use crate::{
+    runner::Runner,
+    tui::{Action, components::run_line},
+};
 
 #[derive(Default)]
 pub(crate) struct History {
@@ -21,7 +19,7 @@ pub(crate) struct History {
 }
 
 impl History {
-    pub(crate) fn handle_key(&mut self, key: KeyEvent, runner: &Runner) -> Option<HistoryEvent> {
+    pub(crate) fn handle_key(&mut self, key: KeyEvent, runner: &Runner) -> Option<Action> {
         match key.code {
             KeyCode::Char('j') | KeyCode::Down => self.move_down(runner.runs.len()),
             KeyCode::Char('n') if key.modifiers.contains(KeyModifiers::CONTROL) => {
@@ -32,12 +30,10 @@ impl History {
                 return self
                     .selected_index(runner.runs.len())
                     .and_then(|index| runner.runs.get(index))
-                    .map(|run| HistoryEvent::Rerun(run.task.clone()));
+                    .map(|run| Action::Run(run.task.clone()));
             }
             KeyCode::Char('x') => {
-                return self
-                    .selected_index(runner.runs.len())
-                    .map(HistoryEvent::Kill);
+                return self.selected_index(runner.runs.len()).map(Action::Kill);
             }
             _ => {}
         }

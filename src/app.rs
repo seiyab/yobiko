@@ -12,8 +12,9 @@ use crate::{
     model::{Task, Workspace},
     runner::Runner,
     tui::{
+        Action,
         components::render_help,
-        screens::{Dashboard, DashboardEvent, OneShot},
+        screens::{Dashboard, OneShot},
     },
 };
 
@@ -78,16 +79,19 @@ impl App {
             self.handle_screen_key(key);
             return;
         }
-        match key.code {
-            KeyCode::Char('q') => self.exit = true,
-            KeyCode::Char('?') => self.help = true,
+        let action = match key.code {
+            KeyCode::Char('q') => Some(Action::Quit),
+            KeyCode::Char('?') => Some(Action::ToggleHelp),
             KeyCode::Char('d')
                 if key.modifiers.contains(KeyModifiers::CONTROL)
                     && matches!(self.screen, Screen::OneShot(_)) =>
             {
-                self.screen = Screen::Dashboard(Dashboard::default());
+                Some(Action::OpenDashboard)
             }
-            _ => self.handle_screen_key(key),
+            _ => self.screen_action(key),
+        };
+        if let Some(action) = action {
+            self.apply(action);
         }
     }
 
@@ -99,20 +103,29 @@ impl App {
     }
 
     fn handle_screen_key(&mut self, key: KeyEvent) {
-        let event = match &mut self.screen {
-            Screen::OneShot(screen) => {
-                if let Some(task) = screen.handle_key(key, &self.tasks) {
-                    self.one_shot = Some(task);
-                    self.exit = true;
-                }
-                return;
-            }
+        if let Some(action) = self.screen_action(key) {
+            self.apply(action);
+        }
+    }
+
+    fn screen_action(&mut self, key: KeyEvent) -> Option<Action> {
+        match &mut self.screen {
+            Screen::OneShot(screen) => screen.handle_key(key, &self.tasks),
             Screen::Dashboard(screen) => screen.handle_key(key, &self.tasks, &self.runner),
-        };
-        match event {
-            Some(DashboardEvent::Run(task) | DashboardEvent::Rerun(task)) => self.spawn(task),
-            Some(DashboardEvent::Kill(index)) => self.runner.kill(index),
-            None => {}
+        }
+    }
+
+    fn apply(&mut self, action: Action) {
+        match action {
+            Action::Quit => self.exit = true,
+            Action::ToggleHelp => self.help = !self.help,
+            Action::OpenDashboard => self.screen = Screen::Dashboard(Dashboard::default()),
+            Action::Run(task) => self.spawn(task),
+            Action::SelectOneShot(task) => {
+                self.one_shot = Some(task);
+                self.exit = true;
+            }
+            Action::Kill(index) => self.runner.kill(index),
         }
     }
 

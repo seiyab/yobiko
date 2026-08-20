@@ -8,7 +8,10 @@ use ratatui::{
 
 use crate::{
     model::Task,
-    tui::components::{TaskPicker, render_task_detail},
+    tui::{
+        Action,
+        components::{TaskPicker, render_task_detail},
+    },
 };
 
 #[derive(Default)]
@@ -21,8 +24,10 @@ impl OneShot {
         self.task_picker.is_searching()
     }
 
-    pub(crate) fn handle_key(&mut self, key: KeyEvent, tasks: &[Task]) -> Option<Task> {
-        self.task_picker.handle_key(key, tasks)
+    pub(crate) fn handle_key(&mut self, key: KeyEvent, tasks: &[Task]) -> Option<Action> {
+        self.task_picker
+            .handle_key(key, tasks)
+            .map(Action::SelectOneShot)
     }
 
     pub(crate) fn render(&mut self, frame: &mut Frame, area: Rect, root: &Path, tasks: &[Task]) {
