@@ -1,21 +1,19 @@
-use std::{
-    path::{Path, PathBuf},
-    time::{Duration, SystemTime, UNIX_EPOCH},
-};
+use std::{path::PathBuf, time::Duration};
 
 use color_eyre::Result;
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use ratatui::{
     DefaultTerminal, Frame,
-    layout::{Alignment, Constraint, Direction, Layout, Rect},
+    layout::{Constraint, Layout, Rect},
     style::{Color, Modifier, Style, Stylize},
-    text::{Line, Span, Text},
-    widgets::{Block, Borders, Clear, List, ListItem, ListState, Paragraph, Tabs, Wrap},
+    text::Line,
+    widgets::{Block, Borders, List, ListItem, ListState, Paragraph, Tabs, Wrap},
 };
 
 use crate::{
     model::{Task, Workspace},
-    runner::{RunStatus, Runner},
+    runner::Runner,
+    tui::components::{relative_dir, render_help, render_task_detail, run_line},
 };
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -251,7 +249,7 @@ impl App {
             .map_or_else(|| "Yobiko  [?] help".into(), |e| format!("Error: {e}"));
         frame.render_widget(Paragraph::new(status), footer);
         if self.help {
-            self.draw_help(frame, area);
+            render_help(frame, area);
         }
     }
 
@@ -313,22 +311,7 @@ impl App {
     }
 
     fn draw_detail(&self, frame: &mut Frame, area: Rect) {
-        let text = self.selected_task().map_or_else(String::new, |task| {
-            format!(
-                "directory: {}\nname: {}\ncommand: {}{}",
-                relative_dir(&self.root, &task.cwd).display(),
-                task.name,
-                task.command_line(),
-                task.content
-                    .map_or_else(String::new, |c| format!("\ncontent: {c}"))
-            )
-        });
-        frame.render_widget(
-            Paragraph::new(text)
-                .wrap(Wrap { trim: false })
-                .block(Block::bordered().title(" Detail ")),
-            area,
-        );
+        render_task_detail(frame, area, &self.root, self.selected_task().as_ref());
     }
 
     fn draw_runs(&self, frame: &mut Frame, area: Rect) {
@@ -395,124 +378,6 @@ impl App {
         frame.render_widget(
             List::new(items).block(Block::bordered().title(" Projects ")),
             area,
-        );
-    }
-
-    fn draw_help(&self, frame: &mut Frame, area: Rect) {
-        let popup = centered(area, 80, 80);
-        let help = [
-            ("q", "exit from yobiko"),
-            ("? / Esc", "toggle help"),
-            ("j/k", "move cursor down/up"),
-            ("Ctrl-n", "move cursor down"),
-            ("/", "input search query"),
-            ("Enter", "launch task under the cursor"),
-            ("Ctrl-d", "switch to dashboard"),
-            ("L/P/H", "open launcher/project/history view"),
-            ("r", "rerun selected history task"),
-            ("x", "kill selected history task"),
-        ];
-        let lines = help
-            .into_iter()
-            .map(|(key, description)| {
-                Line::from(vec![format!("{key:8}: ").bold(), description.into()])
-            })
-            .collect::<Vec<_>>();
-        frame.render_widget(Clear, popup);
-        frame.render_widget(
-            Paragraph::new(Text::from(lines))
-                .block(Block::bordered().title(" [?]Help "))
-                .alignment(Alignment::Left),
-            popup,
-        );
-    }
-}
-
-const DOTS_INTERVAL: Duration = Duration::from_millis(80);
-const DOTS_FRAMES: [&str; 10] = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
-
-fn run_line(status: RunStatus, task: &Task, root: &Path) -> Line<'static> {
-    Line::from(vec![
-        indicator(status),
-        format!(
-            " ({}) {}",
-            relative_dir(root, &task.cwd).display(),
-            task.command_line()
-        )
-        .into(),
-    ])
-}
-
-fn relative_dir<'a>(root: &Path, dir: &'a Path) -> &'a Path {
-    dir.strip_prefix(root)
-        .ok()
-        .filter(|path| !path.as_os_str().is_empty())
-        .unwrap_or_else(|| if dir == root { Path::new(".") } else { dir })
-}
-
-fn indicator(status: RunStatus) -> Span<'static> {
-    match status {
-        RunStatus::Running => dots_frame(
-            SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap_or_default(),
-        )
-        .blue(),
-        RunStatus::Succeeded => "o".green(),
-        RunStatus::Failed => "!".red(),
-    }
-}
-
-fn dots_frame(elapsed: Duration) -> &'static str {
-    DOTS_FRAMES[(elapsed.as_millis() / DOTS_INTERVAL.as_millis()) as usize % DOTS_FRAMES.len()]
-}
-
-fn centered(area: Rect, width: u16, height: u16) -> Rect {
-    let vertical = Layout::new(
-        Direction::Vertical,
-        [
-            Constraint::Percentage((100 - height) / 2),
-            Constraint::Percentage(height),
-            Constraint::Percentage((100 - height) / 2),
-        ],
-    )
-    .split(area);
-    Layout::new(
-        Direction::Horizontal,
-        [
-            Constraint::Percentage((100 - width) / 2),
-            Constraint::Percentage(width),
-            Constraint::Percentage((100 - width) / 2),
-        ],
-    )
-    .split(vertical[1])[1]
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn dots_spinner_uses_cli_spinners_frames_and_interval() {
-        for (index, frame) in DOTS_FRAMES.iter().enumerate() {
-            assert_eq!(dots_frame(DOTS_INTERVAL * index as u32), *frame);
-        }
-        assert_eq!(
-            dots_frame(DOTS_INTERVAL * DOTS_FRAMES.len() as u32),
-            DOTS_FRAMES[0]
-        );
-    }
-
-    #[test]
-    fn displayed_directory_is_relative_to_scan_root() {
-        let root = Path::new("/projects/example");
-        assert_eq!(
-            relative_dir(root, Path::new("/projects/example")),
-            Path::new(".")
-        );
-        assert_eq!(
-            relative_dir(root, Path::new("/projects/example/crates/app")),
-            Path::new("crates/app")
         );
     }
 }

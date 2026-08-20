@@ -3,6 +3,7 @@ mod model;
 mod providers;
 mod runner;
 mod scan;
+mod tui;
 
 use std::process::{Command, ExitCode};
 
