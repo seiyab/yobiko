@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use crossterm::event::KeyEvent;
+use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{
     Frame,
     layout::{Constraint, Layout, Rect},
@@ -10,7 +10,10 @@ use ratatui::{
 use crate::{
     model::Task,
     runner::Runner,
-    tui::components::{TaskPicker, render_task_detail, run_line},
+    tui::{
+        Action,
+        components::{LaunchMode, TaskPicker, render_task_detail, run_line},
+    },
 };
 
 #[derive(Default)]
@@ -23,8 +26,15 @@ impl Launcher {
         self.task_picker.is_searching()
     }
 
-    pub(super) fn handle_key(&mut self, key: KeyEvent, tasks: &[Task]) -> Option<Task> {
-        self.task_picker.handle_key(key, tasks)
+    pub(super) fn handle_key(&mut self, key: KeyEvent, tasks: &[Task]) -> Option<Action> {
+        if !self.task_picker.is_searching() && key.code == KeyCode::Char('e') {
+            return self
+                .task_picker
+                .selected_task(tasks)
+                .cloned()
+                .map(|task| Action::Edit(task, LaunchMode::Dashboard));
+        }
+        self.task_picker.handle_key(key, tasks).map(Action::Run)
     }
 
     pub(super) fn render(

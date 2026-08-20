@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use crossterm::event::KeyEvent;
+use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{
     Frame,
     layout::{Constraint, Layout, Rect},
@@ -10,7 +10,7 @@ use crate::{
     model::Task,
     tui::{
         Action,
-        components::{TaskPicker, render_task_detail},
+        components::{LaunchMode, TaskPicker, render_task_detail},
     },
 };
 
@@ -25,6 +25,13 @@ impl OneShot {
     }
 
     pub(crate) fn handle_key(&mut self, key: KeyEvent, tasks: &[Task]) -> Option<Action> {
+        if !self.task_picker.is_searching() && key.code == KeyCode::Char('e') {
+            return self
+                .task_picker
+                .selected_task(tasks)
+                .cloned()
+                .map(|task| Action::Edit(task, LaunchMode::OneShot));
+        }
         self.task_picker
             .handle_key(key, tasks)
             .map(Action::SelectOneShot)

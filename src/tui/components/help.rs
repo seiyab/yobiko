@@ -15,6 +15,7 @@ pub(crate) fn render_help(frame: &mut Frame, area: Rect) {
         ("Ctrl-n", "move cursor down"),
         ("/", "input search query"),
         ("Enter", "launch task under the cursor"),
+        ("e", "edit task as a shell command"),
         ("Ctrl-d", "switch to dashboard"),
         ("L/P/H", "open launcher/project/history view"),
         ("r", "rerun selected history task"),

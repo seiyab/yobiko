@@ -13,7 +13,7 @@ use crate::{
     runner::Runner,
     tui::{
         Action,
-        components::render_help,
+        components::{CommandEditor, EditorResult, LaunchMode, render_help},
         screens::{Dashboard, OneShot},
     },
 };
@@ -33,6 +33,7 @@ pub struct App {
     exit: bool,
     one_shot: Option<Task>,
     error: Option<String>,
+    command_editor: Option<CommandEditor>,
 }
 
 impl App {
@@ -51,6 +52,7 @@ impl App {
             exit: false,
             one_shot: None,
             error: None,
+            command_editor: None,
         }
     }
 
@@ -69,6 +71,10 @@ impl App {
     }
 
     fn handle_key(&mut self, key: KeyEvent) {
+        if self.command_editor.is_some() {
+            self.handle_editor_key(key);
+            return;
+        }
         if self.help {
             if matches!(key.code, KeyCode::Char('?') | KeyCode::Esc) {
                 self.help = false;
@@ -125,7 +131,28 @@ impl App {
                 self.one_shot = Some(task);
                 self.exit = true;
             }
+            Action::Edit(task, mode) => {
+                self.command_editor = Some(CommandEditor::new(task, mode));
+            }
             Action::Kill(index) => self.runner.kill(index),
+        }
+    }
+
+    fn handle_editor_key(&mut self, key: KeyEvent) {
+        let result = self.command_editor.as_mut().unwrap().handle_key(key);
+        match result {
+            EditorResult::Continue => {}
+            EditorResult::Cancel => self.command_editor = None,
+            EditorResult::Launch(task, mode) => {
+                self.command_editor = None;
+                match mode {
+                    LaunchMode::OneShot => {
+                        self.one_shot = Some(task);
+                        self.exit = true;
+                    }
+                    LaunchMode::Dashboard => self.spawn(task),
+                }
+            }
         }
     }
 
@@ -156,6 +183,9 @@ impl App {
         frame.render_widget(Paragraph::new(status), rows[1]);
         if self.help {
             render_help(frame, area);
+        }
+        if let Some(editor) = &self.command_editor {
+            editor.render(frame, area);
         }
     }
 }

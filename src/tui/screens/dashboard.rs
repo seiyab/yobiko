@@ -50,7 +50,7 @@ impl Dashboard {
             KeyCode::Char('H') => self.tab = Tab::History,
             _ => {
                 return match self.tab {
-                    Tab::Launcher => self.launcher.handle_key(key, tasks).map(Action::Run),
+                    Tab::Launcher => self.launcher.handle_key(key, tasks),
                     Tab::Projects => None,
                     Tab::History => self.history.handle_key(key, runner),
                 };
