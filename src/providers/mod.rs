@@ -1,5 +1,6 @@
 mod cargo;
 mod docker_compose;
+mod go;
 mod mise;
 mod npm;
 mod uv;
@@ -12,6 +13,7 @@ pub fn discover(path: &Path) -> Vec<Workspace> {
     [
         cargo::workspace(path),
         docker_compose::workspace(path),
+        go::workspace(path),
         npm::workspace(path),
         mise::workspace(path),
         uv::workspace(path),
