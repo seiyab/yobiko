@@ -6,13 +6,14 @@ use ratatui::{
     DefaultTerminal, Frame,
     layout::{Constraint, Layout, Rect},
     style::Modifier,
-    widgets::{Block, List, ListItem, ListState, Paragraph, Tabs, Wrap},
+    widgets::{Block, List, ListItem, Paragraph, Tabs},
 };
 
 use crate::{
     model::{Task, Workspace},
     runner::Runner,
     tui::components::{TaskPicker, relative_dir, render_help, render_task_detail, run_line},
+    tui::screens::{History, HistoryEvent},
 };
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -36,7 +37,7 @@ pub struct App {
     mode: Mode,
     tab: Tab,
     task_picker: TaskPicker,
-    history_selected: usize,
+    history: History,
     help: bool,
     exit: bool,
     one_shot: Option<Task>,
@@ -57,7 +58,7 @@ impl App {
             mode: Mode::OneShot,
             tab: Tab::Launcher,
             task_picker: TaskPicker::default(),
-            history_selected: 0,
+            history: History::default(),
             help: false,
             exit: false,
             one_shot: None,
@@ -107,24 +108,15 @@ impl App {
                     self.launch(task);
                 }
             }
-            KeyCode::Char('j') | KeyCode::Down => self.move_history_down(),
-            KeyCode::Char('n') if key.modifiers.contains(KeyModifiers::CONTROL) => {
-                self.move_history_down()
+            _ if self.mode == Mode::Dashboard && self.tab == Tab::History => {
+                match self.history.handle_key(key, &self.runner) {
+                    Some(HistoryEvent::Rerun(task)) => self.spawn(task),
+                    Some(HistoryEvent::Kill(index)) => self.runner.kill(index),
+                    None => {}
+                }
             }
-            KeyCode::Char('k') | KeyCode::Up => self.move_history_up(),
-            KeyCode::Char('r') if self.tab == Tab::History => self.rerun_selected(),
-            KeyCode::Char('x') if self.tab == Tab::History => self.kill_selected(),
             _ => {}
         }
-    }
-
-    fn move_history_down(&mut self) {
-        self.history_selected =
-            (self.history_selected + 1).min(self.runner.runs.len().saturating_sub(1));
-    }
-
-    fn move_history_up(&mut self) {
-        self.history_selected = self.history_selected.saturating_sub(1);
     }
 
     fn selected_task(&self) -> Option<Task> {
@@ -140,26 +132,6 @@ impl App {
         }
     }
 
-    fn history_index(&self) -> Option<usize> {
-        self.runner
-            .runs
-            .len()
-            .checked_sub(self.history_selected + 1)
-    }
-    fn rerun_selected(&mut self) {
-        if let Some(task) = self
-            .history_index()
-            .and_then(|i| self.runner.runs.get(i))
-            .map(|r| r.task.clone())
-        {
-            self.spawn(task);
-        }
-    }
-    fn kill_selected(&mut self) {
-        if let Some(index) = self.history_index() {
-            self.runner.kill(index);
-        }
-    }
     fn spawn(&mut self, task: Task) {
         if let Err(error) = self.runner.spawn(task) {
             self.error = Some(error.to_string());
@@ -201,7 +173,9 @@ impl App {
                 self.draw_launcher(frame, body)
             }
             (Mode::Dashboard, Tab::Project) => self.draw_projects(frame, body),
-            (Mode::Dashboard, Tab::History) => self.draw_history(frame, body),
+            (Mode::Dashboard, Tab::History) => {
+                self.history.render(frame, body, &self.root, &self.runner)
+            }
         }
         let footer = *chunks.last().expect("layout has a footer");
         let status = self
@@ -249,40 +223,6 @@ impl App {
         frame.render_widget(
             List::new(items).block(Block::bordered().title(" Runs ")),
             area,
-        );
-    }
-
-    fn draw_history(&self, frame: &mut Frame, area: Rect) {
-        let columns = Layout::horizontal([Constraint::Percentage(30), Constraint::Percentage(70)])
-            .split(area);
-        let items = self
-            .runner
-            .runs
-            .iter()
-            .rev()
-            .map(|run| ListItem::new(run_line(run.status, &run.task, &self.root)))
-            .collect::<Vec<_>>();
-        let mut state = ListState::default().with_selected(
-            (!items.is_empty()).then_some(self.history_selected.min(items.len().saturating_sub(1))),
-        );
-        frame.render_stateful_widget(
-            List::new(items)
-                .block(Block::bordered().title(" Runs "))
-                .highlight_symbol("> ")
-                .highlight_style(Modifier::BOLD),
-            columns[0],
-            &mut state,
-        );
-        let output = self
-            .history_index()
-            .and_then(|i| self.runner.runs.get(i))
-            .map(|r| r.output.as_str())
-            .unwrap_or("");
-        frame.render_widget(
-            Paragraph::new(output)
-                .wrap(Wrap { trim: false })
-                .block(Block::bordered().title(" Output ")),
-            columns[1],
         );
     }
 
