@@ -11,9 +11,8 @@ use crate::model::Task;
 pub(crate) fn render_task_detail(frame: &mut Frame, area: Rect, root: &Path, task: Option<&Task>) {
     let text = task.map_or_else(String::new, |task| {
         format!(
-            "directory: {}\nprovider: {}\nname: {}\ncommand: {}{}",
+            "directory: {}\nname: {}\ncommand: {}{}",
             relative_dir(root, &task.cwd).display(),
-            task.provider,
             task.name,
             task.command_line(),
             task.content

@@ -14,7 +14,6 @@ pub fn workspace(path: &Path) -> Option<Workspace> {
     }
     let tasks = vec![Task {
         name: "sync".into(),
-        provider: "uv",
         cwd: path.to_path_buf(),
         command: "uv".into(),
         args: vec!["sync".into()],

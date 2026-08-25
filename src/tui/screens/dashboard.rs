@@ -9,7 +9,7 @@ use ratatui::{
 };
 
 use crate::{
-    model::{Diagnostic, Task, Workspace},
+    model::{Task, Workspace},
     runner::Runner,
     tui::{
         Action,
@@ -25,25 +25,15 @@ enum Tab {
     History,
 }
 
+#[derive(Default)]
 pub(crate) struct Dashboard {
     tab: Tab,
     launcher: Launcher,
     projects: Projects,
     history: History,
-    diagnostics: Vec<Diagnostic>,
 }
 
 impl Dashboard {
-    pub(crate) fn new(diagnostics: Vec<Diagnostic>) -> Self {
-        Self {
-            tab: Tab::default(),
-            launcher: Launcher::default(),
-            projects: Projects,
-            history: History::default(),
-            diagnostics,
-        }
-    }
-
     pub(crate) fn captures_input(&self) -> bool {
         self.tab == Tab::Launcher && self.launcher.captures_input()
     }
@@ -93,10 +83,7 @@ impl Dashboard {
         );
         match self.tab {
             Tab::Launcher => self.launcher.render(frame, rows[1], root, tasks, runner),
-            Tab::Projects => {
-                self.projects
-                    .render(frame, rows[1], root, workspaces, &self.diagnostics)
-            }
+            Tab::Projects => self.projects.render(frame, rows[1], root, workspaces),
             Tab::History => self.history.render(frame, rows[1], root, runner),
         }
     }

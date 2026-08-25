@@ -82,7 +82,7 @@ impl TaskPicker {
             .map(|task| {
                 ListItem::new(Line::from(vec![
                     format!("({})", relative_dir(root, &task.cwd).display()).dark_gray(),
-                    format!(" [{}] {}  ", task.provider, task.name).into(),
+                    " ".into(),
                     task.command_line().into(),
                 ]))
             })
@@ -130,7 +130,6 @@ fn filtered_tasks<'a>(tasks: &'a [Task], query: &str) -> Vec<&'a Task> {
         .filter(|task| {
             query.is_empty()
                 || task.name.contains(query)
-                || task.provider.contains(query)
                 || task.cwd.to_string_lossy().contains(query)
                 || task.command.contains(query)
         })

@@ -10,7 +10,6 @@ pub fn workspace(path: &Path) -> Option<Workspace> {
         .into_iter()
         .map(|command| Task {
             name: command.into(),
-            provider: "cargo",
             cwd: path.to_path_buf(),
             command: "cargo".into(),
             args: vec![command.into()],

@@ -6,10 +6,7 @@ use ratatui::{
     widgets::{Block, List, ListItem},
 };
 
-use crate::{
-    model::{Diagnostic, Workspace},
-    tui::components::relative_dir,
-};
+use crate::{model::Workspace, tui::components::relative_dir};
 
 #[derive(Default)]
 pub(super) struct Projects;
@@ -21,9 +18,8 @@ impl Projects {
         area: Rect,
         root: &Path,
         workspaces: &[Workspace],
-        diagnostics: &[Diagnostic],
     ) {
-        let mut items = workspaces
+        let items = workspaces
             .iter()
             .map(|workspace| {
                 ListItem::new(format!(
@@ -34,17 +30,6 @@ impl Projects {
                 ))
             })
             .collect::<Vec<_>>();
-        if !diagnostics.is_empty() {
-            items.push(ListItem::new(""));
-            items.push(ListItem::new("Configuration errors:"));
-            items.extend(diagnostics.iter().map(|diagnostic| {
-                ListItem::new(format!(
-                    "{}: {}",
-                    relative_dir(root, &diagnostic.path).display(),
-                    diagnostic.message
-                ))
-            }));
-        }
         frame.render_widget(
             List::new(items).block(Block::bordered().title(" Projects ")),
             area,
