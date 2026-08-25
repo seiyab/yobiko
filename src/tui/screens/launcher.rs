@@ -26,15 +26,22 @@ impl Launcher {
         self.task_picker.is_searching()
     }
 
-    pub(super) fn handle_key(&mut self, key: KeyEvent, tasks: &[Task]) -> Option<Action> {
+    pub(super) fn handle_key(
+        &mut self,
+        key: KeyEvent,
+        root: &Path,
+        tasks: &[Task],
+    ) -> Option<Action> {
         if !self.task_picker.is_searching() && key.code == KeyCode::Char('e') {
             return self
                 .task_picker
-                .selected_task(tasks)
+                .selected_task(root, tasks)
                 .cloned()
                 .map(|task| Action::Edit(task, LaunchMode::Dashboard));
         }
-        self.task_picker.handle_key(key, tasks).map(Action::Run)
+        self.task_picker
+            .handle_key(key, root, tasks)
+            .map(Action::Run)
     }
 
     pub(super) fn render(
@@ -55,7 +62,7 @@ impl Launcher {
             frame,
             columns[1],
             root,
-            self.task_picker.selected_task(tasks),
+            self.task_picker.selected_task(root, tasks),
         );
     }
 }

@@ -24,16 +24,21 @@ impl OneShot {
         self.task_picker.is_searching()
     }
 
-    pub(crate) fn handle_key(&mut self, key: KeyEvent, tasks: &[Task]) -> Option<Action> {
+    pub(crate) fn handle_key(
+        &mut self,
+        key: KeyEvent,
+        root: &Path,
+        tasks: &[Task],
+    ) -> Option<Action> {
         if !self.task_picker.is_searching() && key.code == KeyCode::Char('e') {
             return self
                 .task_picker
-                .selected_task(tasks)
+                .selected_task(root, tasks)
                 .cloned()
                 .map(|task| Action::Edit(task, LaunchMode::OneShot));
         }
         self.task_picker
-            .handle_key(key, tasks)
+            .handle_key(key, root, tasks)
             .map(Action::SelectOneShot)
     }
 
@@ -41,6 +46,11 @@ impl OneShot {
         let rows =
             Layout::vertical([Constraint::Percentage(70), Constraint::Percentage(30)]).split(area);
         self.task_picker.render(frame, rows[0], root, tasks);
-        render_task_detail(frame, rows[1], root, self.task_picker.selected_task(tasks));
+        render_task_detail(
+            frame,
+            rows[1],
+            root,
+            self.task_picker.selected_task(root, tasks),
+        );
     }
 }

@@ -23,7 +23,12 @@ impl TaskPicker {
         self.searching
     }
 
-    pub(crate) fn handle_key(&mut self, key: KeyEvent, tasks: &[Task]) -> Option<Task> {
+    pub(crate) fn handle_key(
+        &mut self,
+        key: KeyEvent,
+        root: &Path,
+        tasks: &[Task],
+    ) -> Option<Task> {
         if self.searching {
             match key.code {
                 KeyCode::Esc | KeyCode::Enter => self.searching = false,
@@ -46,20 +51,22 @@ impl TaskPicker {
 
         match key.code {
             KeyCode::Char('/') => self.searching = true,
-            KeyCode::Char('j') | KeyCode::Down => self.move_down(tasks),
+            KeyCode::Char('j') | KeyCode::Down => self.move_down(root, tasks),
             KeyCode::Char('n') if key.modifiers.contains(KeyModifiers::CONTROL) => {
-                self.move_down(tasks)
+                self.move_down(root, tasks)
             }
             KeyCode::Char('k') | KeyCode::Up => self.move_up(),
-            KeyCode::Enter => return self.selected_task(tasks).cloned(),
+            KeyCode::Enter => return self.selected_task(root, tasks).cloned(),
             _ => {}
         }
         None
     }
 
-    pub(crate) fn selected_task<'a>(&self, tasks: &'a [Task]) -> Option<&'a Task> {
+    pub(crate) fn selected_task<'a>(&self, root: &Path, tasks: &'a [Task]) -> Option<&'a Task> {
         let selected = self.state.selected().unwrap_or_default();
-        filtered_tasks(tasks, &self.query).get(selected).copied()
+        filtered_tasks(root, tasks, &self.query)
+            .get(selected)
+            .copied()
     }
 
     pub(crate) fn render(&mut self, frame: &mut Frame, area: Rect, root: &Path, tasks: &[Task]) {
@@ -76,7 +83,7 @@ impl TaskPicker {
             ),
             rows[0],
         );
-        let filtered = filtered_tasks(tasks, &self.query);
+        let filtered = filtered_tasks(root, tasks, &self.query);
         let items = filtered
             .iter()
             .map(|task| {
@@ -102,8 +109,10 @@ impl TaskPicker {
         self.state.select(Some(0));
     }
 
-    fn move_down(&mut self, tasks: &[Task]) {
-        let last = filtered_tasks(tasks, &self.query).len().saturating_sub(1);
+    fn move_down(&mut self, root: &Path, tasks: &[Task]) {
+        let last = filtered_tasks(root, tasks, &self.query)
+            .len()
+            .saturating_sub(1);
         let selected = self.state.selected().unwrap_or_default();
         self.state.select(Some((selected + 1).min(last)));
     }
@@ -124,14 +133,72 @@ impl TaskPicker {
     }
 }
 
-fn filtered_tasks<'a>(tasks: &'a [Task], query: &str) -> Vec<&'a Task> {
+fn filtered_tasks<'a>(root: &Path, tasks: &'a [Task], query: &str) -> Vec<&'a Task> {
     tasks
         .iter()
-        .filter(|task| {
-            query.is_empty()
-                || task.name.contains(query)
-                || task.cwd.to_string_lossy().contains(query)
-                || task.command.contains(query)
-        })
+        .filter(|task| fuzzy_matches(&display_text(root, task), query))
         .collect()
+}
+
+fn display_text(root: &Path, task: &Task) -> String {
+    format!(
+        "({}) {}",
+        relative_dir(root, &task.cwd).display(),
+        task.command_line()
+    )
+}
+
+fn fuzzy_matches(text: &str, query: &str) -> bool {
+    let mut query = query.chars();
+    let Some(mut expected) = query.next() else {
+        return true;
+    };
+
+    for character in text.chars() {
+        if character.eq_ignore_ascii_case(&expected) {
+            let Some(next) = query.next() else {
+                return true;
+            };
+            expected = next;
+        }
+    }
+    false
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::PathBuf;
+
+    use super::*;
+
+    fn task(cwd: &str, command: &str, args: &[&str]) -> Task {
+        Task {
+            name: "not displayed".into(),
+            cwd: PathBuf::from(cwd),
+            command: command.into(),
+            args: args.iter().map(|arg| (*arg).into()).collect(),
+            content: None,
+        }
+    }
+
+    #[test]
+    fn fuzzy_matches_displayed_directory_and_command_line() {
+        let root = Path::new("/projects");
+        let tasks = [
+            task("/projects/crates/app", "cargo", &["test"]),
+            task("/projects/web", "npm", &["run", "lint"]),
+        ];
+
+        assert_eq!(filtered_tasks(root, &tasks, "CRAPP TST"), vec![&tasks[0]]);
+        assert_eq!(filtered_tasks(root, &tasks, "npm lint"), vec![&tasks[1]]);
+    }
+
+    #[test]
+    fn does_not_match_text_that_is_not_displayed() {
+        let root = Path::new("/projects");
+        let tasks = [task("/projects/app", "cargo", &["test"])];
+
+        assert!(filtered_tasks(root, &tasks, "not displayed").is_empty());
+        assert!(filtered_tasks(root, &tasks, "projects").is_empty());
+    }
 }

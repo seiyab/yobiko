@@ -116,8 +116,10 @@ impl App {
 
     fn screen_action(&mut self, key: KeyEvent) -> Option<Action> {
         match &mut self.screen {
-            Screen::OneShot(screen) => screen.handle_key(key, &self.tasks),
-            Screen::Dashboard(screen) => screen.handle_key(key, &self.tasks, &self.runner),
+            Screen::OneShot(screen) => screen.handle_key(key, &self.root, &self.tasks),
+            Screen::Dashboard(screen) => {
+                screen.handle_key(key, &self.root, &self.tasks, &self.runner)
+            }
         }
     }
 

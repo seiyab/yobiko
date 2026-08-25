@@ -41,6 +41,7 @@ impl Dashboard {
     pub(crate) fn handle_key(
         &mut self,
         key: KeyEvent,
+        root: &Path,
         tasks: &[Task],
         runner: &Runner,
     ) -> Option<Action> {
@@ -50,7 +51,7 @@ impl Dashboard {
             KeyCode::Char('H') => self.tab = Tab::History,
             _ => {
                 return match self.tab {
-                    Tab::Launcher => self.launcher.handle_key(key, tasks),
+                    Tab::Launcher => self.launcher.handle_key(key, root, tasks),
                     Tab::Projects => None,
                     Tab::History => self.history.handle_key(key, runner),
                 };
